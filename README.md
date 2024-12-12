@@ -4,7 +4,7 @@
 
 # Library of home-made Emacs Lisp functions
 
-This is a library of homemade functions that for the customized Emacs to fit my workflow.
+This is a library of homemade functions to customize Emacs to fit my workflow.
 
 ## Usage
 
@@ -31,9 +31,9 @@ Enter `M-x ml/user-functions-open` to edit the file.
 Enter `M-x ml/user-functions-load` to load the functions.
 Enter `M-x ml/` to see a list of functions displayed in the minibuffer.
 
-## 
+## Related
 
-
+These functions were mentioned in the talk presented at emacsconf 2024 on metadata management in writing projects.
 
 ## Status
 
