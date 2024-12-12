@@ -30,6 +30,7 @@ Add this function to your `init.el` file to load the file of home-made functions
 Enter `M-x ml/user-functions-open` to edit the file.
 Enter `M-x ml/user-functions-load` to load the functions.
 Enter `M-x ml/` to see a list of functions displayed in the minibuffer.
+If you have installed the package marginalia, you will also see the first line of the document string that describes what the function does.
 
 ## Related
 
