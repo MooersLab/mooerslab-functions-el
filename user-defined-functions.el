@@ -204,6 +204,56 @@ Prompts for a file path via minibuffer and includes a timestamp in a comment."
   (when ffap-file-at-point-line-number
     (forward-line ffap-file-at-point-line-number)
     (setq ffap-file-at-point-line-number nil)))
+;;; get-citekeys-from-bibtex-file
+;% used to work with annotated bibliography. Returns a list under the cursor in the current buffer.
+(defun ml/get-citekeys-from-bibtex-file ()  
+  "Prompt for a BibTeX filename in the minibuffer, extract citekeys, and insert an alphabetized itemized list into the current buffer at the cursor position."  
+  (interactive)  
+  (let* ((filename (read-file-name "BibTeX file: ")) ;; Prompt for the BibTeX file  
+         (citekeys '())) ;; Initialize an empty list to store citekeys  
+    (if (not (file-exists-p filename))  
+        (message "File does not exist: %s" filename)  
+      ;; Process the BibTeX file  
+      (with-temp-buffer  
+        (insert-file-contents filename) ;; Read the contents of the file into the buffer  
+        (goto-char (point-min)) ;; Move to the beginning of the buffer  
+        ;; Search for BibTeX entry keys (e.g., @article{citekey, ...)  
+        (while (re-search-forward "@\\w+{\\([^,]+\\)," nil t)  
+          (let ((citekey (match-string 1))) ;; Extract the citekey from the match  
+            (push citekey citekeys))) ;; Add the citekey to the list  
+        ;; Sort the citekeys alphabetically  
+        (setq citekeys (sort citekeys #'string<))))  
+    ;; Insert the formatted list into the current buffer  
+    (let ((formatted-citekeys  
+           (mapconcat (lambda (key) (concat " " key)) citekeys "\n")))  
+      (insert formatted-citekeys "\n"))))
+;;; wrap-citekey-and-create-tex-file
+;% Used to convert a citekey into a section heading.
+(defun ml/wrap-citekey-and-create-tex-file ()  
+  "Replace the citekey under the cursor with LaTeX-wrapped text, create a corresponding .tex file, and open it in a new buffer."  
+  (interactive)  
+  (let* ((citekey (thing-at-point 'word t)) ;; Get the citekey under the cursor  
+         (tex-file-dir "/Users/blaine/abibNotes/") ;; Directory for the .tex file  
+         (tex-file-path (concat tex-file-dir citekey ".tex")) ;; Full path for the .tex file  
+         (wrapped-text (format "\\subsection*{\\bibentry{%s}}\n\\Addcontentsline{toc}{subsection}{%s}\n\\input{%s}"  
+                               citekey citekey tex-file-path))) ;; LaTeX-wrapped text  
+    (if (not citekey)  
+        (message "No citekey found under the cursor.")  
+      (progn  
+        ;; Delete the citekey under the cursor  
+        (let ((bounds (bounds-of-thing-at-point 'word)))  
+          (delete-region (car bounds) (cdr bounds)))  
+        ;; Insert the wrapped text in its place  
+        (insert wrapped-text)  
+        ;; Create the .tex file if it doesn't already exist  
+        (if (file-exists-p tex-file-path)  
+            (message "File %s already exists." tex-file-path)  
+          (with-temp-file tex-file-path  
+            (insert (format "%% This is the .tex file for citekey: %s\n" citekey))))  
+        ;; Open the .tex file in a new buffer  
+        (find-file tex-file-path)  
+        (message "Replaced citekey, created .tex file, and opened it: %s" tex-file-path)))))
+
 ;;; insert-org-captioned-figure
 ;%  The function prompts the user for the image file path and name, the label, and the caption.
 (defun ml/insert-org-captioned-figure ()
