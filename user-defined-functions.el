@@ -73,7 +73,7 @@ Prompts for a file path via minibuffer and includes a timestamp in a comment."
     (insert latex-string)))
     
 ;;; region of csv list to latex
-(defun convert-csv-to-latex-itemize (start end)  
+(defun ml/convert-csv-to-latex-itemize (start end)  
   "Convert a comma-separated list in the selected region to a LaTeX itemized list."  
   (interactive "r")  
   (let ((csv-text (buffer-substring-no-properties start end)))  
