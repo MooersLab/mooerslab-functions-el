@@ -71,6 +71,19 @@ Prompts for a file path via minibuffer and includes a timestamp in a comment."
     (delete-region start end)
     (goto-char start)
     (insert latex-string)))
+    
+;;; region of csv list to latex
+(defun convert-csv-to-latex-itemize (start end)  
+  "Convert a comma-separated list in the selected region to a LaTeX itemized list."  
+  (interactive "r")  
+  (let ((csv-text (buffer-substring-no-properties start end)))  
+    (delete-region start end)  
+    (insert "\\begin{itemize}\n")  
+    (dolist (item (split-string csv-text ","))  
+      (insert (format "  \\item %s\n" (string-trim item))))  
+    (insert "\\end{itemize}\n")))
+
+
 
 ;;; convert-init-el-to-init-org
 ;% The goal is to convert the init.el file to a org file so that it can be rendered on GitHub or rendered locally to html or PDF.
@@ -386,5 +399,38 @@ The regular expression ^\\*\\* .*:%s: is used to search for second-level headlin
   (interactive)
   (set-frame-width (selected-frame) (- (frame-width) 10)))
 (global-set-key (kbd "C-c n") 'narrow-frame)
+
+(transient-define-prefix pdb-transient-menu ()  
+  "PDB Mode Commands"  
+  [["Select"  
+    ("c" "Select chain" pdb-select-chain)  
+    ("C" "Select current chain" (lambda () (interactive) (pdb-select-chain "")))  
+    ("r" "Select current residue" pdb-select-residue)  
+    ("z" "Select zone of residues" pdb-select-zone)]  
+   ["Navigate"  
+    ("n" "Jump to next residue" pdb-forward-residue)  
+    ("p" "Jump to previous residue" pdb-back-residue)  
+    ("N" "Jump to next chain" pdb-forward-chain)  
+    ("P" "Jump to previous chain" pdb-back-chain)]  
+   ["Change Values"  
+    ("a" "Set alternate conformer" pdb-change-alternate)  
+    ("b" "Set B-factor" pdb-change-bfactor)]  
+   ["Execution"  
+    ("x" "Continue" pdb-continue)  
+    ("s" "Step" pdb-step)  
+    ("r" "Return" pdb-return)  
+    ("u" "Until" pdb-until)  
+    ("j" "Jump to line" pdb-jump)]  
+   ["Breakpoints"  
+    ("B" "Set breakpoint" pdb-break)  
+    ("D" "Delete breakpoint" pdb-clear)  
+    ("A" "Clear all breakpoints" pdb-clear-all)]  
+   ["Expressions"  
+    ("e" "Evaluate expression" pdb-eval-expression)  
+    ("p" "Print expression" pdb-print-expression)]  
+   ["Other"  
+    ("q" "Quit debugger" pdb-quit)]])  
+(with-eval-after-load 'pdb-mode  
+  (define-key pdb-mode-map (kbd "C-c t") 'pdb-transient-menu))
 
 (provide 'user-defined-functions)
