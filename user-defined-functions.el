@@ -82,8 +82,7 @@ Prompts for a file path via minibuffer and includes a timestamp in a comment."
     (dolist (item (split-string csv-text ","))  
       (insert (format "  \\item %s\n" (string-trim item))))  
     (insert "\\end{itemize}\n")))
-
-
+    
 
 ;;; convert-init-el-to-init-org
 ;% The goal is to convert the init.el file to a org file so that it can be rendered on GitHub or rendered locally to html or PDF.
@@ -363,6 +362,15 @@ The regular expression ^\\*\\* .*:%s: is used to search for second-level headlin
   "Play a YouTube video with mpv."
   (interactive "sYouTube URL: ")
   (start-process "mpv" nil "mpv" URL))
+
+
+;;; Reload the initialization file after editing it in Emacs
+(defun ml/open-user-defined-functions ()
+  "Open for editing the file containing the user dfined functions. This file is under version control with git."
+  (interactive)
+  (find-file "~/6112MooersLabGitHubLabRepos/user-defined-functions-el"))
+
+
 
 ;;; Reload the initialization file after editing it in Emacs
 (defun ml/reload-init-e29f ()
