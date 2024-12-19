@@ -135,6 +135,43 @@ Prompts for a file path via minibuffer and includes a timestamp in a comment."
     (while (re-search-forward "\\\\item" end t)
       (replace-match "-"))))
 
+;;; ml/region-csv-to-org-table
+					;% Ceontert selected rows in CSV format into a org-tabl
+
+(defun ml/region-csv-to-org-table ()  
+  "Convert CSV data in region to org table format.  
+Assumes first row contains headers and uses commas as delimiters."  
+  (interactive)  
+  (if (not (region-active-p))  
+      (message "No region selected")  
+    (let* ((start (region-beginning))  
+           (end (region-end))  
+           (csv-text (buffer-substring-no-properties start end))  
+           (rows (split-string csv-text "\n" t))  
+           (header-row (car rows))  
+           (data-rows (cdr rows)))  
+      ;; Delete region content  
+      (delete-region start end)  
+      ;; Insert org table header  
+      (insert "|"   
+              (mapconcat (lambda (cell)  
+                          (string-trim cell))  
+                        (split-string header-row "," t)  
+                        "|")  
+              "|\n|-\n")  
+      ;; Insert data rows  
+      (dolist (row data-rows)  
+        (when (not (string-empty-p row))  
+          (insert "|"  
+                  (mapconcat (lambda (cell)  
+                             (string-trim cell))  
+                           (split-string row "," t)  
+                           "|")  
+                  "|\n")))  
+      ;; Align the table  
+      (org-table-align))))
+
+
 ;;; create-org-table-with-caption
 ;%  This interactive function prompts the user for the number of rows, columns, and caption of the table.
 (defun ml/create-org-table-with-caption ()
