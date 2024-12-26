@@ -32,8 +32,8 @@ Add this function to your `init.el` file to load the file of home-made functions
         (find-file file-path)  
       (message "Cannot find mooerslab-functions.el file"))))```
 
-Enter `M-x ml/user-functions-open` to edit the file.
-Enter `M-x ml/user-functions-load` to load the functions.
+Enter `M-x ml/mooerslab-functions-open` to edit the file.
+Enter `M-x ml/mooerslab-functions-load` to load the functions.
 Enter `M-x ml/` to see a list of functions displayed in the minibuffer.
 If you have installed the package marginalia, you will also see the document string's first line describing what the function does.
 
