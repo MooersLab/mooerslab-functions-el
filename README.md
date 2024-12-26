@@ -14,15 +14,15 @@ Add this function to your `init.el` file to load the file of home-made functions
 ;;;## mooerslab-functions-load
 ;; ml is for mooerslab
 ;; Inspried https://sachachua.com/dotemacs/index.html#org4dd39d0
-(defun ml/mooerslab-load ()
-  "Open mooerslab-defined-function."
+(defun ml/mooerslab-functions-load ()
+  "Open mooerslab-functions.el."
   (interactive)
   (load-file "~/6112MooersLabGitHubLabRepos/mooerslab-functions-el/mooerslab-functions.el"))
 
 ;;;## user-functions-open
 ;; Inspried https://sachachua.com/dotemacs/index.html#org4dd39d0
 (defun ml/mooerslab-functions-open ()
-  "Open mooerslab-def-function."
+  "Open mooerslab-functions.el."
   (interactive)
   (find-file "~/6112MooersLabGitHubLabRepos/mooerslab-functions-el/mooerslab-functions.el"))
 ```
