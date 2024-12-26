@@ -11,7 +11,7 @@ This is a library of homemade functions to customize Emacs to fit my workflow.
 Add this function to your `init.el` file to load the file of home-made functions:
 
 ```elisp
-;;;## user-functions-load
+;;;## mooerslab-functions-load
 ;; ml is for mooerslab
 ;; Inspried https://sachachua.com/dotemacs/index.html#org4dd39d0
 (defun ml/mooerslab-functions-load ()
