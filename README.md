@@ -43,9 +43,9 @@ Ready to roll.
 ## Update history
 
 |Version      | Changes                                                                                                                                  | Date                |
-|:-----------|:------------------------------------------------------------------------------------------------------------------------------------------|:--------------------|
+|:------------|:-----------------------------------------------------------------------------------------------------------------------------------------|:--------------------|
 | Version 0.1 |   Added badges, funding, and update table.  Initial commit.                                                                              | 2024 December 12    |
-| Version 0.2 |   Renamed the repository and the elisp file.                                                                                             | 2024 December 26    |
+| Version 0.2 |   Renamed the repository and the elisp file.  Updated the elisp functions in the README.md file.                                         | 2024 December 26    |
 
 ## Sources of funding
 
