@@ -14,18 +14,23 @@ Add this function to your `init.el` file to load the file of home-made functions
 ;;;## mooerslab-functions-load
 ;; ml is for mooerslab
 ;; Inspried https://sachachua.com/dotemacs/index.html#org4dd39d0
-(defun ml/mooerslab-functions-load ()
-  "Open mooerslab-functions.el."
-  (interactive)
-  (load-file "~/6112MooersLabGitHubLabRepos/mooerslab-functions-el/mooerslab-functions.el"))
+(defun ml/mooerslab-functions-load ()  
+  "Load mooerslab-functions.el file."  
+  (interactive)  
+  (let ((file-path "~/6112MooersLabGitHubLabRepos/mooerslab-functions-el/mooerslab-functions.el"))  
+    (if (file-exists-p (expand-file-name file-path))  
+        (load-file file-path)  
+      (message "Cannot find mooerslab-functions.el file"))))
 
 ;;;## user-functions-open
 ;; Inspried https://sachachua.com/dotemacs/index.html#org4dd39d0
-(defun ml/mooerslab-functions-open ()
-  "Open mooerslab-functions.el."
-  (interactive)
-  (find-file "~/6112MooersLabGitHubLabRepos/mooerslab-functions-el/mooerslab-functions.el"))
-```
+(defun ml/mooerslab-functions-open ()  
+  "Open mooerslab-functions.el in the current buffer."  
+  (interactive)  
+  (let ((file-path "~/6112MooersLabGitHubLabRepos/mooerslab-functions-el/mooerslab-functions.el"))  
+    (if (file-exists-p (expand-file-name file-path))  
+        (find-file file-path)  
+      (message "Cannot find mooerslab-functions.el file"))))```
 
 Enter `M-x ml/user-functions-open` to edit the file.
 Enter `M-x ml/user-functions-load` to load the functions.
