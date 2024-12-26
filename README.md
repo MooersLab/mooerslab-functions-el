@@ -17,7 +17,7 @@ Add this function to your `init.el` file to load the file of home-made functions
 (defun ml/mooerslab-functions-load ()
   "Open user-defined-function."
   (interactive)
-  (load-file "~/~/6112MooersLabGitHubLabRepos/mooerslab-functions-el/mooerslab-functions.el"))
+  (load-file "~/6112MooersLabGitHubLabRepos/mooerslab-functions-el/mooerslab-functions.el"))
 
 ;;;## user-functions-open
 ;; Inspried https://sachachua.com/dotemacs/index.html#org4dd39d0
