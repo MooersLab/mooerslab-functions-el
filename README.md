@@ -14,23 +14,23 @@ Add this function to your `init.el` file to load the file of home-made functions
 ;;;## user-functions-load
 ;; ml is for mooerslab
 ;; Inspried https://sachachua.com/dotemacs/index.html#org4dd39d0
-(defun ml/user-functions-load ()
+(defun ml/mooerslab-functions-load ()
   "Open user-defined-function."
   (interactive)
-  (load-file "~/~/6112MooersLabGitHubLabRepos/user-defined-funtions-el/user-defined-functions.el"))
+  (load-file "~/~/6112MooersLabGitHubLabRepos/mooerslab-functions-el/mooerslab-functions.el"))
 
 ;;;## user-functions-open
 ;; Inspried https://sachachua.com/dotemacs/index.html#org4dd39d0
-(defun ml/user-functions-open ()
+(defun ml/mooerslab-functions-open ()
   "Open user-defined-function."
   (interactive)
-  (find-file "~/6112MooersLabGitHubLabRepos/user-defined-funtions-el/user-defined-functions.el"))
+  (find-file "~/6112MooersLabGitHubLabRepos/mooerslab-functions-el/mooerslab-functions.el"))
 ```
 
 Enter `M-x ml/user-functions-open` to edit the file.
 Enter `M-x ml/user-functions-load` to load the functions.
 Enter `M-x ml/` to see a list of functions displayed in the minibuffer.
-If you have installed the package marginalia, you will also see the first line of the document string that describes what the function does.
+If you have installed the package marginalia, you will also see the document string's first line describing what the function does.
 
 ## Related
 
@@ -42,9 +42,10 @@ Ready to roll.
 
 ## Update history
 
-|Version      | Changes                                                                                                                                  | Date                 |
+|Version      | Changes                                                                                                                                  | Date                |
 |:-----------|:------------------------------------------------------------------------------------------------------------------------------------------|:--------------------|
-| Version 0.1 |   Added badges, funding, and update table.  Initial commit.                                                                              | 2024 December 12  |
+| Version 0.1 |   Added badges, funding, and update table.  Initial commit.                                                                              | 2024 December 12    |
+| Version 0.2 |   Renamed the repository and the elisp file.                                                                                             | 2024 December 26    |
 
 ## Sources of funding
 
