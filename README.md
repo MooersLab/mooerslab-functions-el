@@ -14,7 +14,7 @@ Add this function to your `init.el` file to load the file of home-made functions
 ;;;## mooerslab-functions-load
 ;; ml is for mooerslab
 ;; Inspried https://sachachua.com/dotemacs/index.html#org4dd39d0
-(defun ml/mooerslab-functions-load ()
+(defun ml/mooerslab-load ()
   "Open mooerslab-defined-function."
   (interactive)
   (load-file "~/6112MooersLabGitHubLabRepos/mooerslab-functions-el/mooerslab-functions.el"))
@@ -22,7 +22,7 @@ Add this function to your `init.el` file to load the file of home-made functions
 ;;;## user-functions-open
 ;; Inspried https://sachachua.com/dotemacs/index.html#org4dd39d0
 (defun ml/mooerslab-functions-open ()
-  "Open mooerslab-defined-function."
+  "Open mooerslab-def-function."
   (interactive)
   (find-file "~/6112MooersLabGitHubLabRepos/mooerslab-functions-el/mooerslab-functions.el"))
 ```
