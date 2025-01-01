@@ -1,3 +1,34 @@
+;;; mooerslab-functions.el --- A collection of utility functions to improve our workflows.
+
+;; Copyright (C) 2024 Blaine Mooers, University of Oklahoma Health Sciences Center
+
+;; Author: blaine-mooers@ouhsc.edu
+;; Maintainer: blaine-mooers@ouhsc.edu
+;; URL: http://bondxray.org/software/pdb-mode/
+;; Version: 0.2
+;; Keywords: data, pdb
+
+;; This file is free software; you can redistribute it and/or modify
+;; it under the terms of the GNU General Public License as published by
+;; the Free Software Foundation; either version 2, or (at your option)
+;; any later version.
+
+;; This file is distributed in the hope that it will be useful,
+;; but WITHOUT ANY WARRANTY; without even the implied warranty of
+;; MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+;; GNU General Public License for more details.
+
+;; You should have received a copy of the GNU General Public License
+;; along with GNU Emacs; see the file COPYING.  If not, write to
+;; the Free Software Foundation, Inc., 59 Temple Place - Suite 330,
+;; Boston, MA 02111-1307, USA.
+
+;;; Commentary:
+
+;;; This package is known to work (insofar as it's tested) with Emacs 29.4
+
+
+
 
 (defun ml/org-insert-external-file (file-path)
   "Insert the contents of an external file into the current org-mode file.
@@ -203,6 +234,7 @@ Assumes first row contains headers and uses commas as delimiters."
       (insert "----+"))))
 
 ;;;  count-non-blank-lines
+;% Count the number of non-blank lines in the current buffer.
 (defun ml/count-non-blank-lines ()
   "Count the number of non-blank lines in the current buffer."
   (interactive)
@@ -214,6 +246,77 @@ Assumes first row contains headers and uses commas as delimiters."
           (setq count (1+ count)))
         (forward-line 1)))
     (message "Number of non-blank lines: %d" count)))
+
+;;; export-csv-to-quiz-table
+;% Usage example:
+;% (export-csv-to-qiterm "~/6233iterm/qiterm.csv" "~/6233iterm/qiterm.db" "qiterm")
+(defun ml/export-csv-to-sqlite-table (csv-file db-file table-name)
+  "Export selected rows from a CSV file to an SQLite database."
+  (interactive "fCSV file: \nfSQLite DB file: \nsTable name: ")
+  (let ((db (sqlite3-open db-file))
+        (rows (with-temp-buffer
+                (insert-file-contents csv-file)
+                (split-string (buffer-string) "\n" t))))
+    (dolist (row rows)
+      (let ((values (split-string row ",")))
+        (sqlite3-exec db
+                      (format "INSERT INTO %s VALUES ('%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s');"
+                              table-name
+                              (nth 0 values)
+                              (nth 1 values)
+                              (nth 2 values)
+                              (nth 3 values)
+                              (nth 4 values)
+                              (nth 5 values)
+                              (nth 6 values)
+                              (nth 7 values)))))
+    (sqlite3-close db)
+    (message "Data successfully appended to %s" table-name)))
+
+
+;;; export-csv-to-matched-sqlite-table 
+;% Usage example:
+;% (export-csv-to-matched-sqlite-table "~/6233iterm/qiterm.csv" "~/6233iterm/qiterm.db" "qiterm")
+(defun ml/export-csv-to-matched-sqlite-table  (csv-file db-file table-name)  
+  "Export selected rows from a CSV file to an SQLite database.  
+Automatically determines column count and validates against table structure."  
+  (interactive "fCSV file: \nfSQLite DB file: \nsTable name: ")  
+  (let* ((db (sqlite3-open db-file))  
+         ;; Get table column count from database  
+         (table-info (sqlite3-exec db (format "PRAGMA table_info(%s)" table-name)))  
+         (db-column-count (length table-info))  
+         ;; Read and process CSV  
+         (rows (with-temp-buffer  
+                (insert-file-contents csv-file)  
+                (split-string (buffer-string) "\n" t)))  
+         ;; Get CSV column count from first row  
+         (csv-column-count (length (split-string (car rows) ","))))  
+
+    ;; Validate column counts match  
+    (if (not (= csv-column-count db-column-count))  
+        (progn  
+          (sqlite3-close db)  
+          (error "Column count mismatch: CSV has %d columns, table has %d columns"  
+                 csv-column-count db-column-count))  
+  
+      ;; Process rows if validation passes  
+      (dolist (row rows)  
+        (let* ((values (split-string row ","))  
+               ;; Create placeholders for SQL query (?,?,?) based on column count  
+               (placeholders (mapconcat (lambda (_) "?")  
+                                      (make-list csv-column-count nil)  
+                                      ","))  
+               ;; Create SQL query with proper number of placeholders  
+               (query (format "INSERT INTO %s VALUES (%s)"   
+                            table-name placeholders)))  
+          ;; Execute the query with values  
+          (sqlite3-exec db query values)))  
+  
+      (sqlite3-close db)  
+      (message "Data successfully appended to %s" table-name))))
+
+
+
 
 ;;; find file and go to line number
 ;%  interactively enter the file name and line number in the minibuffer
@@ -314,6 +417,7 @@ Assumes first row contains headers and uses commas as delimiters."
     (insert (format "#+CAPTION: %s \\label{%s}\n" caption label))
     (insert (format "#+NAME: %s\n" label))
     (insert (format "[[file:%s]]\n" image-name))))
+
 ;;; launch-ithoughtsx
 ;% This is the best mindmapping software that I have encountered.
 (defun ml/launch-ithoughtsx ()
@@ -401,19 +505,49 @@ The regular expression ^\\*\\* .*:%s: is used to search for second-level headlin
   (start-process "mpv" nil "mpv" URL))
 
 
-;;; Reload the initialization file after editing it in Emacs
+;;; Load the user-defined functions for running.
+(defun ml/load-user-defined-functions ()
+  "Load file containing the user defined functions. This file is under version control with git."
+  (interactive)
+  (load-file "~/6112MooersLabGitHubLabRepos/user-defined-functions-el/user-defined-functions.el"))
+
+;;; Open the initialization file after editing it in Emacs
 (defun ml/open-user-defined-functions ()
   "Open for editing the file containing the user dfined functions. This file is under version control with git."
   (interactive)
-  (find-file "~/6112MooersLabGitHubLabRepos/user-defined-functions-el"))
+  (find-file "~/6112MooersLabGitHubLabRepos/user-defined-functions-el/user-defined-functions.el"))
 
+;; (global-set-key (kbd ".") 'self-insert-command)
 
 
 ;;; Reload the initialization file after editing it in Emacs
-(defun ml/reload-init-e29f ()
-  "Reload the init.el file for e29org. Edit the path to suite your needs."
+(defun reload-init-e29f ()
+  "Reload the init.el file for e29fewpacakges. Edit the path to suite your needs."
   (interactive)
   (load-file "~/e29fewpackages/init.el"))
+
+;;; Open the init.el file for editing.
+(defun open-init-e29f ()
+  "Open the init.el file for editing. Edit the path to suite your needs."
+  (interactive)
+  (find-file "~/e29fewpackages/init.el"))
+
+ 
+;;; Reload the my-hydras file after editing it in Emacs.
+(defun reload-my-hydras ()
+    "Reload my-hydras.el. Edit the path to suite your needs."
+    (interactive)
+    (load-file "~/e29fewpackages/my-hydras/my-hydras.el"))
+
+;;; Open the init.el my-hydras for editing.
+(defun open-my-hydras ()
+  "Open the init.el file for editing. Edit the path to suite your needs."
+  (interactive)
+  (find-file "~/e29fewpackages/my-hydras/my-hydras.el"))
+
+
+
+
 ;;; Spawn a new shell with the supplied title
 (defun ml/spawn-shell (name)
   "Invoke shell test"
@@ -445,37 +579,37 @@ The regular expression ^\\*\\* .*:%s: is used to search for second-level headlin
   (set-frame-width (selected-frame) (- (frame-width) 10)))
 (global-set-key (kbd "C-c n") 'narrow-frame)
 
-(transient-define-prefix pdb-transient-menu ()  
-  "PDB Mode Commands"  
-  [["Select"  
-    ("c" "Select chain" pdb-select-chain)  
-    ("C" "Select current chain" (lambda () (interactive) (pdb-select-chain "")))  
-    ("r" "Select current residue" pdb-select-residue)  
-    ("z" "Select zone of residues" pdb-select-zone)]  
-   ["Navigate"  
-    ("n" "Jump to next residue" pdb-forward-residue)  
-    ("p" "Jump to previous residue" pdb-back-residue)  
-    ("N" "Jump to next chain" pdb-forward-chain)  
-    ("P" "Jump to previous chain" pdb-back-chain)]  
-   ["Change Values"  
-    ("a" "Set alternate conformer" pdb-change-alternate)  
-    ("b" "Set B-factor" pdb-change-bfactor)]  
-   ["Execution"  
-    ("x" "Continue" pdb-continue)  
-    ("s" "Step" pdb-step)  
-    ("r" "Return" pdb-return)  
-    ("u" "Until" pdb-until)  
-    ("j" "Jump to line" pdb-jump)]  
-   ["Breakpoints"  
-    ("B" "Set breakpoint" pdb-break)  
-    ("D" "Delete breakpoint" pdb-clear)  
-    ("A" "Clear all breakpoints" pdb-clear-all)]  
-   ["Expressions"  
-    ("e" "Evaluate expression" pdb-eval-expression)  
-    ("p" "Print expression" pdb-print-expression)]  
-   ["Other"  
-    ("q" "Quit debugger" pdb-quit)]])  
-(with-eval-after-load 'pdb-mode  
-  (define-key pdb-mode-map (kbd "C-c t") 'pdb-transient-menu))
+; (transient-define-prefix pdb-transient-menu ()
+;   "PDB Mode Commands"
+;   [["Select"
+;     ("c" "Select chain" pdb-select-chain)
+;     ("C" "Select current chain" (lambda () (interactive) (pdb-select-chain "")))
+;     ("r" "Select current residue" pdb-select-residue)
+;     ("z" "Select zone of residues" pdb-select-zone)]
+;    ["Navigate"
+;     ("n" "Jump to next residue" pdb-forward-residue)
+;     ("p" "Jump to previous residue" pdb-back-residue)
+;     ("N" "Jump to next chain" pdb-forward-chain)
+;     ("P" "Jump to previous chain" pdb-back-chain)]
+;    ["Change Values"
+;     ("a" "Set alternate conformer" pdb-change-alternate)
+;     ("b" "Set B-factor" pdb-change-bfactor)]
+;    ["Execution"
+;     ("x" "Continue" pdb-continue)
+;     ("s" "Step" pdb-step)
+;     ("r" "Return" pdb-return)
+;     ("u" "Until" pdb-until)
+;     ("j" "Jump to line" pdb-jump)]
+;    ["Breakpoints"
+;     ("B" "Set breakpoint" pdb-break)
+;     ("D" "Delete breakpoint" pdb-clear)
+;     ("A" "Clear all breakpoints" pdb-clear-all)]
+;    ["Expressions"
+;     ("e" "Evaluate expression" pdb-eval-expression)
+;     ("p" "Print expression" pdb-print-expression)]
+;    ["Other"
+;     ("q" "Quit debugger" pdb-quit)]])
+; (with-eval-after-load 'pdb-mode
+;   (define-key pdb-mode-map (kbd "C-c t") 'pdb-transient-menu)))
 
-(provide 'user-defined-functions)
+(provide 'mooerslab-functions)
