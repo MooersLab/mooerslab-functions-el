@@ -247,6 +247,66 @@ Assumes first row contains headers and uses commas as delimiters."
         (forward-line 1)))
     (message "Number of non-blank lines: %d" count)))
 
+
+;;;## Convert CSV file into an org table. Will convert internal commas inside strings into pipes.
+(defun ml/csv2org (csv-file &optional caption)  
+  "Convert a CSV file to an Org-mode table.  
+
+Prompts for a CSV file and optionally a caption.  Creates a new  
+buffer containing the Org-mode table.  Does NOT handle CSV files with  
+quoted fields containing commas.  
+
+CSV-FILE: The path to the CSV file.  
+CAPTION: (Optional) A string to use as the table caption."  
+  (interactive "fCSV file: \nsCaption (optional): ")  
+  (let* ((output-buffer (generate-new-buffer (format "*%s-org*" (file-name-nondirectory csv-file))))  
+         (csv-data (with-temp-buffer  
+                     (insert-file-contents csv-file)  
+                     (split-string (buffer-string) "\n" t)))  
+         (header (pop csv-data))  ; Extract header and remove from csv-data  
+         (org-table-lines '()))  
+
+    (when (and caption (not (string-empty-p caption)))  
+      (push (concat "#+CAPTION: " caption) org-table-lines))  
+
+    ;; Process header  
+    (push (concat "|" (mapconcat (lambda (field)  
+                                  (format " %s " (replace-regexp-in-string "^\"\\(.*\\)\"$" "\\1" field)))  
+                                (split-string header "," t)  
+                                "|") "|")  ; Add pipes correctly  
+          org-table-lines)  
+
+    ;; Create separator line  
+    (push (concat "|" (mapconcat (lambda (field) (make-string (length field) ?-) )  
+                                (split-string header "," t)  
+                                "|") "|")  
+          org-table-lines)  
+
+    ;; Process data rows  
+    (dolist (row csv-data)  
+      (push (concat "|" (mapconcat (lambda (field)  
+                                  (format " %s " (replace-regexp-in-string "^\"\\(.*\\)\"$" "\\1" field)))  
+                                (split-string row "," t nil)  
+                                "|") "|") ; Add pipes correctly  
+            org-table-lines))  
+
+    ;; Create bottom rule (same as separator)  
+      (push (concat "|" (mapconcat (lambda (field) (make-string (length field) ?-) )  
+                                (split-string header "," t)  
+                                "|") "|")  
+          org-table-lines)  
+
+    ;; Insert into output buffer  
+    (with-current-buffer output-buffer  
+      (dolist (line (reverse org-table-lines))  
+        (insert (concat line "\n")))  
+      (org-mode) ; Switch to Org mode  
+      (goto-char (point-min))) ; Go to beginning of buffer  
+
+    (switch-to-buffer output-buffer)))
+
+
+
 ;;; export-csv-to-quiz-table
 ;% Usage example:
 ;% (export-csv-to-qiterm "~/6233iterm/qiterm.csv" "~/6233iterm/qiterm.db" "qiterm")
