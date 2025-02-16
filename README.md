@@ -6,9 +6,25 @@
 
 This is a library of homemade functions to customize Emacs to fit my workflow.
 
-## Usage
 
-Add this function to your `init.el` file to load the file of home-made functions:
+
+## Installation with use-package and straight
+
+Add this to your `init.el` file and reload Emacs or evaluate in the scratch buffer.
+
+```elisp
+(use-package mooerslab-functions  
+  :straight  
+  '(:type git  
+    :repo "https://github.com/MooersLab/mooerslab-functions-el.git"  
+    :files ("mooerslab-functions.el")))
+```
+The functions will always be available.
+
+
+## Alternate approach of 
+
+Add this function to your `init.el` file to load the file of home-made functions manaually:
 
 ```elisp
 ;;;## mooerslab-functions-load
@@ -30,10 +46,13 @@ Add this function to your `init.el` file to load the file of home-made functions
   (let ((file-path "~/6112MooersLabGitHubLabRepos/mooerslab-functions-el/mooerslab-functions.el"))  
     (if (file-exists-p (expand-file-name file-path))  
         (find-file file-path)  
-      (message "Cannot find mooerslab-functions.el file"))))```
+      (message "Cannot find mooerslab-functions.el file"))))
+```
 
-Enter `M-x ml/mooerslab-functions-open` to edit the file.
+
 Enter `M-x ml/mooerslab-functions-load` to load the functions.
+Enter `M-x ml/mooerslab-functions-open` to edit the file.
+
 Enter `M-x ml/` to see a list of functions displayed in the minibuffer.
 If you have installed the package marginalia, you will also see the document string's first line describing what the function does.
 
