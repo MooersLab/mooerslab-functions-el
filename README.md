@@ -25,8 +25,8 @@ There will be no need to use the `mooerslab-functions-load ()` function below.
 
 ## Usage
 
-If you have the package vertico installed, enter `M-x ml/` to see a list of functions in the minibuffer.
-If you have installed the package marginalia, you will also see the document string's first line describing what the function does.
+If you have the package **vertico** installed, enter `M-x ml/` to see a list of functions in the minibuffer.
+If you have installed the package **marginalia**, you will also see the document string's first line describing what the function does.
 
 
 ## Alternate approach of loading the package
