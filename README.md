@@ -23,6 +23,11 @@ Straight will `git clone` this repo and store it in the `repos` subfolder of you
 The functions will always be available.
 There will be no need to use the `mooerslab-functions-load ()` function below.
 
+## Usage
+
+If you have the package vertico installed, enter `M-x ml/` to see a list of functions in the minibuffer.
+If you have installed the package marginalia, you will also see the document string's first line describing what the function does.
+
 
 ## Alternate approach of loading the package
 
@@ -60,7 +65,6 @@ Enter `M-x ml/mooerslab-functions-load` to load the functions.
 
 Enter `M-x ml/mooerslab-functions-open` to edit the file.
 
-If you have installed the package marginalia, you will also see the document string's first line describing what the function does.
 
 ## Related
 
