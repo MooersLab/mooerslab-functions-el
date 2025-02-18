@@ -5,7 +5,7 @@
 ;; Author: blaine-mooers@ouhsc.edu
 ;; Maintainer: blaine-mooers@ouhsc.edu
 ;; URL: http://bondxray.org/software/pdb-mode/
-;; Version: 0.2
+;; Version: 0.3
 ;; Keywords: data, pdb
 
 ;; This file is free software; you can redistribute it and/or modify
@@ -310,6 +310,7 @@ CAPTION: (Optional) A string to use as the table caption."
 ;;; export-csv-to-quiz-table
 ;% Usage example:
 ;% (export-csv-to-qiterm "~/6233iterm/qiterm.csv" "~/6233iterm/qiterm.db" "qiterm")
+(with-eval-after-load 'sqlite 
 (defun ml/export-csv-to-sqlite-table (csv-file db-file table-name)
   "Export selected rows from a CSV file to an SQLite database."
   (interactive "fCSV file: \nfSQLite DB file: \nsTable name: ")
@@ -332,11 +333,12 @@ CAPTION: (Optional) A string to use as the table caption."
                               (nth 7 values)))))
     (sqlite3-close db)
     (message "Data successfully appended to %s" table-name)))
-
+)
 
 ;;; export-csv-to-matched-sqlite-table 
 ;% Usage example:
 ;% (export-csv-to-matched-sqlite-table "~/6233iterm/qiterm.csv" "~/6233iterm/qiterm.db" "qiterm")
+(with-eval-after-load 'sqlite 
 (defun ml/export-csv-to-matched-sqlite-table  (csv-file db-file table-name)  
   "Export selected rows from a CSV file to an SQLite database.  
 Automatically determines column count and validates against table structure."  
@@ -374,7 +376,7 @@ Automatically determines column count and validates against table structure."
   
       (sqlite3-close db)  
       (message "Data successfully appended to %s" table-name))))
-
+)
 
 
 
@@ -416,6 +418,8 @@ Automatically determines column count and validates against table structure."
   (when ffap-file-at-point-line-number
     (forward-line ffap-file-at-point-line-number)
     (setq ffap-file-at-point-line-number nil)))
+
+
 ;;; get-citekeys-from-bibtex-file
 ;% used to work with annotated bibliography. Returns a list under the cursor in the current buffer.
 (defun ml/get-citekeys-from-bibtex-file ()  
@@ -439,6 +443,7 @@ Automatically determines column count and validates against table structure."
     (let ((formatted-citekeys  
            (mapconcat (lambda (key) (concat " " key)) citekeys "\n")))  
       (insert formatted-citekeys "\n"))))
+
 ;;; wrap-citekey-and-create-tex-file
 ;% Used to convert a citekey into a section heading.
 (defun ml/wrap-citekey-and-create-tex-file ()  
@@ -485,6 +490,8 @@ Automatically determines column count and validates against table structure."
   (interactive)
   (shell-command "open -a iThoughtsX"))
 (global-set-key (kbd "C-c i") 'launch-ithoughtsx)
+
+
 ;;; launch-jabref
 ;% I favored the simplicity and power of JabRef for mamanging BibTeX entries.
 (defun ml/launch-jabref ()
@@ -492,6 +499,8 @@ Automatically determines column count and validates against table structure."
       (interactive)
       (shell-command "open -a JabRef"))
     (global-set-key (kbd "C-c j") 'launch-jabref)
+
+
 ;;; launch-timesspent
 ;% This is a sqlite database where I track my effort.
 (defun ml/launch-timesspent ()
@@ -499,6 +508,7 @@ Automatically determines column count and validates against table structure."
       (interactive)
       (shell-command "open /Users/blaine/6003TimeTracking/cb/mytime.db"))
     (global-set-key (kbd "C-c e") 'launch-timesspent)
+
 
 ;;; Move the cursor to the minibuffer without using the mouse
 ;%  From video https://www.youtube.com/watch?v=X8c_TrGfYcM&t=15s using Emacs as a multiplexer."
@@ -512,6 +522,7 @@ Automatically determines column count and validates against table structure."
 (global-set-key "\C-cm" 'switch-to-minibuffer) ;; Bind to `C-c m' for minibuffer.
 ;; (global-set-key (kbd ".") 'self-insert-command) ;; Unbind the settin below.
 (global-set-key (kbd ".") 'repeat) ; analog of the Vim command.
+
 
 ;;; Open a file and move to a headline with a specific tag
 ;%  The default tag is restart-here.
@@ -529,11 +540,7 @@ The regular expression ^\\*\\* .*:%s: is used to search for second-level headlin
     (if (re-search-forward (format "^\\*\\* .*:%s:" tag) nil t)
         (org-end-of-subtree)
       (message "Tag not found"))))
-;;; Play a YouTube video with mpv
-;%  You insert the YouTube url in the minibufffer.
-;%  You have to install mpv with a package manager and another binary package.
-;%  sudo curl -L https://yt-dl.org/downloads/latest/youtube-dl -o /usr/local/bin/youtube-dl
-;%  sudo chmod a+rx /usr/local/bin/youtube-dl
+
 
 ;;; open-template-with-citekey
 ;% Open template file renamed with the citekey under the point.
@@ -558,24 +565,18 @@ The regular expression ^\\*\\* .*:%s: is used to search for second-level headlin
 (global-set-key (kbd "C-c z") 'open-new-abibnote-on-citekey)
 
 
+
+;;; Play a YouTube video with mpv
+;%  You insert the YouTube url in the minibufffer.
+;%  You have to install mpv with a package manager and another binary package.
+;%  sudo curl -L https://yt-dl.org/downloads/latest/youtube-dl -o /usr/local/bin/youtube-dl
+;%  sudo chmod a+rx /usr/local/bin/youtube-dl
 ;;;; play-youtube-video
 (defun ml/play-youtube-video (url)
   "Play a YouTube video with mpv."
   (interactive "sYouTube URL: ")
   (start-process "mpv" nil "mpv" URL))
 
-
-;;; Load the user-defined functions for running.
-(defun ml/load-user-defined-functions ()
-  "Load file containing the user defined functions. This file is under version control with git."
-  (interactive)
-  (load-file "~/6112MooersLabGitHubLabRepos/user-defined-functions-el/user-defined-functions.el"))
-
-;;; Open the initialization file after editing it in Emacs
-(defun ml/open-user-defined-functions ()
-  "Open for editing the file containing the user dfined functions. This file is under version control with git."
-  (interactive)
-  (find-file "~/6112MooersLabGitHubLabRepos/user-defined-functions-el/user-defined-functions.el"))
 
 ;; (global-set-key (kbd ".") 'self-insert-command)
 
@@ -586,26 +587,26 @@ The regular expression ^\\*\\* .*:%s: is used to search for second-level headlin
   (interactive)
   (load-file "~/e29fewpackages/init.el"))
 
+
 ;;; Open the init.el file for editing.
 (defun open-init-e29f ()
   "Open the init.el file for editing. Edit the path to suite your needs."
   (interactive)
   (find-file "~/e29fewpackages/init.el"))
 
- 
+
 ;;; Reload the my-hydras file after editing it in Emacs.
 (defun reload-my-hydras ()
     "Reload my-hydras.el. Edit the path to suite your needs."
     (interactive)
     (load-file "~/e29fewpackages/my-hydras/my-hydras.el"))
 
+
 ;;; Open the init.el my-hydras for editing.
 (defun open-my-hydras ()
   "Open the init.el file for editing. Edit the path to suite your needs."
   (interactive)
   (find-file "~/e29fewpackages/my-hydras/my-hydras.el"))
-
-
 
 
 ;;; Spawn a new shell with the supplied title
@@ -616,6 +617,8 @@ The regular expression ^\\*\\* .*:%s: is used to search for second-level headlin
   (shell (current-buffer))
   (process-send-string nil "echo 'test1'\n")
   (process-send-string nil "echo 'test2'\n"))
+
+
 ;;; Split line with many sentences into one line per sentence.
 (defun ml/split-sentences-into-lines (start end)
     "Move each sentence in the region to its own line."
@@ -627,17 +630,22 @@ The regular expression ^\\*\\* .*:%s: is used to search for second-level headlin
 ;% Bind the function to a key combination, e.g., C-c s
 (global-set-key (kbd "C-c s") 'split-sentences-into-lines)
 ;;; widen-frame to the right. Enter period have first issue.
+
+
 (defun ml/widen-frame ()
   "Increase the width of the current frame by 10 columns."
   (interactive)
   (set-frame-width (selected-frame) (+ (frame-width) 10)))
 (global-set-key (kbd "C-c w") 'widen-frame)
+
+
 ;; narrow-frame. Enter period have first issue.
 (defun ml/narrow-frame ()
   "Reduce the width of the current frame by 10 columns."
   (interactive)
   (set-frame-width (selected-frame) (- (frame-width) 10)))
 (global-set-key (kbd "C-c n") 'narrow-frame)
+
 
 ; (transient-define-prefix pdb-transient-menu ()
 ;   "PDB Mode Commands"
