@@ -1,10 +1,10 @@
-![Version](https://img.shields.io/static/v1?label=matplotlib-voice-in&message=0.3&color=brightcolor)
+![Version](https://img.shields.io/static/v1?label=matplotlib-voice-in&message=0.4&color=brightcolor)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](https://opensource.org/licenses/MIT)
 
 
 # Library of home-made Emacs Lisp functions
 
-This is a library of homemade functions to customize Emacs to fit my workflow.
+This is a library of homemade functions to customize Emacs to fit my workflow with Emacs 30.1 on Mac OSX.
 
 
 
@@ -82,6 +82,7 @@ Ready to roll.
 | Version 0.1 |   Added badges, funding, and update table.  Initial commit.                                                                              | 2024 December 12    |
 | Version 0.2 |   Renamed the repository and the elisp file.  Updated the elisp functions in the README.md file.                                         | 2024 December 26    |
 | Version 0.3 |   Added code for use straight to install this package.                                                                                    | 2025 February 16    |
+| Version 0.4 |   Updated functions from emacs29 to emacs30.                                                                                    | 2025 March 3    |
 
 
 ## Sources of funding
