@@ -582,31 +582,31 @@ The regular expression ^\\*\\* .*:%s: is used to search for second-level headlin
 
 
 ;;; Reload the initialization file after editing it in Emacs
-(defun reload-init-e29f ()
-  "Reload the init.el file for e29fewpacakges. Edit the path to suite your needs."
+(defun reload-init-e30f ()
+  "Reload the init.el file for e30fewpacakges. Edit the path to suite your needs."
   (interactive)
-  (load-file "~/e29fewpackages/init.el"))
+  (load-file "~/e30fewpackages/init.el"))
 
 
 ;;; Open the init.el file for editing.
-(defun open-init-e29f ()
+(defun open-init-e30f ()
   "Open the init.el file for editing. Edit the path to suite your needs."
   (interactive)
-  (find-file "~/e29fewpackages/init.el"))
+  (find-file "~/e30fewpackages/init.el"))
 
 
 ;;; Reload the my-hydras file after editing it in Emacs.
 (defun reload-my-hydras ()
     "Reload my-hydras.el. Edit the path to suite your needs."
     (interactive)
-    (load-file "~/e29fewpackages/my-hydras/my-hydras.el"))
+    (load-file "~/e30fewpackages/my-hydras/my-hydras.el"))
 
 
 ;;; Open the init.el my-hydras for editing.
 (defun open-my-hydras ()
   "Open the init.el file for editing. Edit the path to suite your needs."
   (interactive)
-  (find-file "~/e29fewpackages/my-hydras/my-hydras.el"))
+  (find-file "~/e30fewpackages/my-hydras/my-hydras.el"))
 
 
 ;;; Spawn a new shell with the supplied title
