@@ -1,33 +1,66 @@
 ;;; mooerslab-functions.el --- A collection of utility functions to improve our workflows.
 
-;; Copyright (C) 2024 Blaine Mooers, University of Oklahoma Health Sciences Center
+;; Copyright (C) 2025 Blaine Mooers, University of Oklahoma Health Sciences Center
 
 ;; Author: blaine-mooers@ouhsc.edu
 ;; Maintainer: blaine-mooers@ouhsc.edu
-;; URL: http://bondxray.org/software/pdb-mode/
-;; Version: 0.3
+;; URL: https://github.com/MooersLab/mooerslab-functions-el
+;; Version: 0.5
 ;; Keywords: data, pdb
+;; License: MIT
 
-;; This file is free software; you can redistribute it and/or modify
-;; it under the terms of the GNU General Public License as published by
-;; the Free Software Foundation; either version 2, or (at your option)
-;; any later version.
+;;; This package is known to work (insofar as it's tested) with Emacs 30.1.
 
-;; This file is distributed in the hope that it will be useful,
-;; but WITHOUT ANY WARRANTY; without even the implied warranty of
-;; MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-;; GNU General Public License for more details.
+;;; add-periods-to-list
+(defun ml/add-periods-to-list ()  
+  "Add a period to the end of each line in the current list if missing.
+This is a huge problem with lists in slideshows.
+The absence of periods will upset some audience members.  
+Works with:  
+- org-mode lists (-, *, numbers)  
+- org-mode checklists (- [ ], * [ ])  
+- LaTeX \\item lists  
+- LaTeX \\item checklists (\\item [ ])
 
-;; You should have received a copy of the GNU General Public License
-;; along with GNU Emacs; see the file COPYING.  If not, write to
-;; the Free Software Foundation, Inc., 59 Temple Place - Suite 330,
-;; Boston, MA 02111-1307, USA.
+Usage: Place cursor anywhere in list. Enter M-x add-periods-to-list or C-c p.
 
-;;; Commentary:
+Developed with the help of Claude 3.5 Sonnet."  
+  (interactive)  
+  (save-excursion  
+    (let ((list-end (save-excursion  
+                      (end-of-list)  
+                      (point))))  
+      (beginning-of-list)  
+      (while (< (point) list-end)  
+        (end-of-line)  
+        (when (and (not (looking-back "[.!?]\\|[.!?]\"\\|[.!?]''" (line-beginning-position)))  
+                   (not (looking-at-p "^\\s-*$")) ; Skip empty lines  
+                   (save-excursion  
+                     (beginning-of-line)  
+                     (looking-at-p "^\\s-*\\([-*]\\(?: \\[[ X-]\\]\\)?\\|[0-9]+[.)]\\|\\\\item\\(?: \\[[ X-]\\]\\)?\\)")))  
+          (insert "."))  
+        (forward-line)))))  
 
-;;; This package is known to work (insofar as it's tested) with Emacs 29.4
+(defun ml/beginning-of-list ()  
+  "Move to beginning of the current list.  
+Handles org-mode lists, checklists, and LaTeX lists."  
+  (while (and (not (bobp))  
+              (save-excursion  
+                (beginning-of-line)  
+                (looking-at-p "^\\s-*\\([-*]\\(?: \\[[ X-]\\]\\)?\\|[0-9]+[.)]\\|\\\\item\\(?: \\[[ X-]\\]\\)?\\)")))  
+    (forward-line -1))  
+  (forward-line 1))  
 
+(defun ml/end-of-list ()  
+  "Move to end of the current list.  
+Handles org-mode lists, checklists, and LaTeX lists."  
+  (while (and (not (eobp))  
+              (save-excursion  
+                (beginning-of-line)  
+                (looking-at-p "^\\s-*\\([-*]\\(?: \\[[ X-]\\]\\)?\\|[0-9]+[.)]\\|\\\\item\\(?: \\[[ X-]\\]\\)?\\)")))  
+    (forward-line 1)))
 
+(global-set-key (kbd "C-c p") 'add-periods-to-list)
 
 
 (defun ml/org-insert-external-file (file-path)
@@ -167,7 +200,7 @@ Prompts for a file path via minibuffer and includes a timestamp in a comment."
       (replace-match "-"))))
 
 ;;; ml/region-csv-to-org-table
-					;% Ceontert selected rows in CSV format into a org-tabl
+;% Ceontert selected rows in CSV format into a org-tabl
 
 (defun ml/region-csv-to-org-table ()  
   "Convert CSV data in region to org table format.  
