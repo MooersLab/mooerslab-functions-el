@@ -1,4 +1,4 @@
-![Version](https://img.shields.io/static/v1?label=matplotlib-voice-in&message=0.4&color=brightcolor)
+![Version](https://img.shields.io/static/v1?label=matplotlib-voice-in&message=0.5&color=brightcolor)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](https://opensource.org/licenses/MIT)
 
 
@@ -82,7 +82,8 @@ Ready to roll.
 | Version 0.1 |   Added badges, funding, and update table.  Initial commit.                                                                              | 2024 December 12    |
 | Version 0.2 |   Renamed the repository and the elisp file.  Updated the elisp functions in the README.md file.                                         | 2024 December 26    |
 | Version 0.3 |   Added code for use straight to install this package.                                                                                    | 2025 February 16    |
-| Version 0.4 |   Updated functions from emacs29 to emacs30.                                                                                    | 2025 March 3    |
+| Version 0.4 |   Updated functions from emacs29 to emacs30.                                                                                              | 2025 March 3    |
+| Version 0.5 |   Added function to add period to end of sentences in various kinds of lists in org and LaTeX files.                                      | 2025 March 4    |
 
 
 ## Sources of funding
