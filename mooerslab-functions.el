@@ -70,7 +70,7 @@ Handles org-mode lists, checklists, and LaTeX lists."
 ;; The manual cutting and pasting for five categories per day or week can take a long time.
 ;; I know that org-agenda can do something like this.
 ;; I want more control.
-(defun carry-forward-todos ()  
+(defun ml/carry-forward-todos ()  
 "Carry forward undone TODOs and unchecked items to Next Week while preserving categories."  
 (interactive)  
 (save-excursion  
@@ -169,7 +169,7 @@ Handles org-mode lists, checklists, and LaTeX lists."
                                    t)  
              (replace-match "\\1[X]" nil nil))))  
        t 'tree)))))
-
+(global-set-key (kbd "C-c f") 'ml/carry-forward-todos)
 
 
 
