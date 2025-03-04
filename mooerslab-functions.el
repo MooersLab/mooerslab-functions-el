@@ -63,6 +63,118 @@ Handles org-mode lists, checklists, and LaTeX lists."
 (global-set-key (kbd "C-c p") 'add-periods-to-list)
 
 
+
+
+;;; carry-forward-todos
+;; When planning on a daily or daily basis in org, it is a pain to move the unfinished items forward manually.
+;; The manual cutting and pasting for five categories per day or week can take a long time.
+;; I know that org-agenda can do something like this.
+;; I want more control.
+(defun carry-forward-todos ()  
+"Carry forward undone TODOs and unchecked items to Next Week while preserving categories."  
+(interactive)  
+(save-excursion  
+  (let ((todos-to-move '())  
+        (current-level (org-outline-level))  
+        (category-order '()))  
+    
+    ;; Store the current week's position  
+    (let ((current-week-pos (point)))  
+      
+      ;; First, collect category order  
+      (org-map-entries  
+       (lambda ()  
+         (when (= (org-outline-level) (1+ current-level))  
+           (push (org-get-heading t t t t) category-order)))  
+       t 'tree)  
+      (setq category-order (reverse category-order))  
+      
+      ;; Collect TODOs and checklist items from each category  
+      (org-map-entries  
+       (lambda ()  
+         (when (= (org-outline-level) (1+ current-level))  
+           (let ((category (org-get-heading t t t t))  
+                 (end-of-subtree (save-excursion   
+                                 (org-end-of-subtree)  
+                                 (point))))  
+             ;; Collect TODOs  
+             (save-excursion  
+               (while (re-search-forward org-todo-regexp end-of-subtree t)  
+                 (let ((todo-state (match-string 1)))  
+                   (when (and todo-state  
+                            (not (member todo-state '("DONE" "CANCELED"))))  
+                     (push (cons category  
+                               (concat "   "  
+                                      (buffer-substring-no-properties  
+                                       (line-beginning-position)  
+                                       (1+ (line-end-position)))))  
+                           todos-to-move)))))  
+             
+             ;; Collect unchecked boxes  
+             (save-excursion  
+               (goto-char (line-beginning-position))  
+               (while (re-search-forward "^\\([ \t]*\\)\\([-+*]\\) \\[ \\]" end-of-subtree t)  
+                 (let ((indent (match-string 1))  
+                       (bullet (match-string 2)))  
+                   (push (cons category  
+                             (concat "   " indent bullet " [ ] "  
+                                    (buffer-substring-no-properties  
+                                     (match-end 0)  
+                                     (line-end-position))  
+                                    "\n"))  
+                         todos-to-move)))))))  
+       t 'tree)  
+      
+      ;; Find or create Next Week heading  
+      (goto-char (point-min))  
+      (let ((next-week-marker (concat "^\\*\\{" (number-to-string current-level) "\\} Next Week")))  
+        (unless (re-search-forward next-week-marker nil t)  
+          (goto-char (point-max))  
+          (insert "\n" (make-string current-level ?*) " Next Week\n")))  
+      
+      ;; Insert collected items under appropriate categories  
+      (dolist (category category-order)  
+        (when (cl-remove-if-not  
+               (lambda (x) (string= (car x) category))  
+               todos-to-move)  
+          ;; Create or find category heading  
+          (let ((category-marker (concat "^\\*\\{" (number-to-string (1+ current-level)) "\\} "   
+                                       (regexp-quote category))))  
+            (unless (re-search-forward category-marker nil t)  
+              (insert "\n" (make-string (1+ current-level) ?*) " " category "\n"))  
+            ;; Insert todos for this category  
+            (dolist (todo (reverse (cl-remove-if-not  
+                                  (lambda (x) (string= (car x) category))  
+                                  todos-to-move)))  
+              (insert (cdr todo))))))  
+      
+      ;; Go back and mark original items as done  
+      (goto-char current-week-pos)  
+      (org-map-entries  
+       (lambda ()  
+         (when (org-entry-is-todo-p)  
+           (let ((todo-state (org-get-todo-state)))  
+             (when (and todo-state  
+                       (not (member todo-state '("DONE" "CANCELED"))))  
+               (org-todo "DONE")))))  
+       t 'tree)  
+      
+      ;; Mark all checkboxes as done  
+      (goto-char current-week-pos)  
+      (org-map-entries  
+       (lambda ()  
+         (save-excursion  
+           (while (re-search-forward "^[ \t]*[-+*] \\[ \\]"  
+                                   (save-excursion (outline-next-heading) (point))  
+                                   t)  
+             (replace-match "\\1[X]" nil nil))))  
+       t 'tree)))))
+
+
+
+
+
+;;; org-insert-external-file
 (defun ml/org-insert-external-file (file-path)
   "Insert the contents of an external file into the current org-mode file.
 Prompts for a file path via minibuffer and includes a timestamp in a comment."
