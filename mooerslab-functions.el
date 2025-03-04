@@ -651,20 +651,34 @@ The regular expression ^\\*\\* .*:%s: is used to search for second-level headlin
   (process-send-string nil "echo 'test1'\n")
   (process-send-string nil "echo 'test2'\n"))
 
-
 ;;; Split line with many sentences into one line per sentence.
-(defun ml/split-sentences-into-lines (start end)
-    "Move each sentence in the region to its own line."
-    (interactive "r")
-    (save-excursion
-      (goto-char start)
-      (while (re-search-forward "\\([.!?]\\)\\s-+" end t)
-        (replace-match "\\1\n"))))
-;% Bind the function to a key combination, e.g., C-c s
-(global-set-key (kbd "C-c s") 'split-sentences-into-lines)
+(defun ml/split-sentences-into-lines (start end)  
+  "Move each sentence in the region to its own line, ignoring common titles and abbreviations."  
+  (interactive "r")  
+  (save-excursion  
+    (goto-char start)  
+    ;; First, temporarily mark abbreviations  
+    (let ((case-fold-search nil))  ; make search case-sensitive  
+      ;; Mark abbreviations with a special character (¶)  
+      (goto-char start)  
+      (while (re-search-forward "\\(Dr\\|Drs\\|Mr\\|Mrs\\|Ph\\.D\\|M\\.S\\)\\." end t)  
+        (replace-match "\\1¶"))  
+      
+      ;; Now split on actual sentence endings  
+      (goto-char start)  
+      (while (re-search-forward "\\([.!?]\\)\\s-+" end t)  
+        (replace-match "\\1\n"))  
+      
+      ;; Restore the original periods in abbreviations  
+      (goto-char start)  
+      (while (re-search-forward "¶" end t)  
+        (replace-match ".")))))  
+
+;; Bind the function to a key combination  
+(global-set-key (kbd "C-c s") 'ml/split-sentences-into-lines)  
+
+
 ;;; widen-frame to the right. Enter period have first issue.
-
-
 (defun ml/widen-frame ()
   "Increase the width of the current frame by 10 columns."
   (interactive)
