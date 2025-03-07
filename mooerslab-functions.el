@@ -23,7 +23,6 @@ Works with:
 - LaTeX \\item checklists (\\item [ ])
 
 Usage: Place cursor anywhere in list. Enter M-x add-periods-to-list or C-c p.
-
 Developed with the help of Claude 3.5 Sonnet."  
   (interactive)  
   (save-excursion  
@@ -102,14 +101,13 @@ Handles org-mode lists, checklists, and LaTeX lists."
                (while (re-search-forward org-todo-regexp end-of-subtree t)  
                  (let ((todo-state (match-string 1)))  
                    (when (and todo-state  
-                            (not (member todo-state '("DONE" "CANCELED"))))  
+                            (not (member todo-state '("DONE" "CANCELLED" "SOMEDAY"))))  
                      (push (cons category  
                                (concat "   "  
                                       (buffer-substring-no-properties  
                                        (line-beginning-position)  
                                        (1+ (line-end-position)))))  
                            todos-to-move)))))  
-             
              ;; Collect unchecked boxes  
              (save-excursion  
                (goto-char (line-beginning-position))  
@@ -790,20 +788,20 @@ The regular expression ^\\*\\* .*:%s: is used to search for second-level headlin
 (global-set-key (kbd "C-c s") 'ml/split-sentences-into-lines)  
 
 
-;;; widen-frame to the right. Enter period have first issue.
-(defun ml/widen-frame ()
-  "Increase the width of the current frame by 10 columns."
-  (interactive)
-  (set-frame-width (selected-frame) (+ (frame-width) 10)))
-(global-set-key (kbd "C-c w") 'widen-frame)
+;; ;;; widen-frame to the right. Enter period have first issue.
+;; (defun ml/widen-frame ()
+;;   "Increase the width of the current frame by 10 columns."
+;;   (interactive)
+;;   (set-frame-width (selected-frame) (+ (frame-width) 10)))
+;; (global-set-key (kbd "C-c w") 'widen-frame)
 
 
-;; narrow-frame. Enter period have first issue.
-(defun ml/narrow-frame ()
-  "Reduce the width of the current frame by 10 columns."
-  (interactive)
-  (set-frame-width (selected-frame) (- (frame-width) 10)))
-(global-set-key (kbd "C-c n") 'narrow-frame)
+;; ;; narrow-frame. Enter period have first issue.
+;; (defun ml/narrow-frame ()
+;;   "Reduce the width of the current frame by 10 columns."
+;;   (interactive)
+;;   (set-frame-width (selected-frame) (- (frame-width) 10)))
+;; (global-set-key (kbd "C-c n") 'narrow-frame)
 
 
 ; (transient-define-prefix pdb-transient-menu ()
