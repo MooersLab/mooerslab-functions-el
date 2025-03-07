@@ -14,6 +14,7 @@
 ;;; add-periods-to-list
 (defun ml/add-periods-to-list ()  
   "Add a period to the end of each line in the current list if missing.
+Designed to work in both org and latex files.
 This is a huge problem with lists in slideshows.
 The absence of periods will upset some audience members.  
 Works with:  
@@ -62,6 +63,14 @@ Handles org-mode lists, checklists, and LaTeX lists."
 (global-set-key (kbd "C-c p") 'add-periods-to-list)
 
 
+(defun ml/org-add-periods-to-list-items ()  
+  "Add periods to the end of all items in the current org-mode list if missing.  
+Preserves both checked and unchecked checkboxes."  
+  (interactive)  
+  (save-excursion  
+    (goto-char (point-min))  
+    (while (re-search-forward "^\\([ \t]*-[ \t]+\\(?:\\[[ X]\\][ \t]+\\)?\\)\\(.*?\\)\\([^.]\\)[ \t]*$" nil t)  
+      (replace-match "\\1\\2\\3." nil nil))))  
 
 
 ;;; carry-forward-todos
@@ -169,8 +178,13 @@ Handles org-mode lists, checklists, and LaTeX lists."
        t 'tree)))))
 (global-set-key (kbd "C-c f") 'ml/carry-forward-todos)
 
-
-
+(defun ml/org-add-periods-to-list-items ()  
+  "Add periods to the end of all items in the current org-mode list if missing."  
+  (interactive)  
+  (save-excursion  
+    (goto-char (point-min))  
+    (while (re-search-forward "^[ \t]*[-+*] \\(.*?\\)\\([^.]\\)[ \t]*$" nil t)  
+      (replace-match "\\1\\2." nil nil))))  
 
 ;;; org-insert-external-file
 (defun ml/org-insert-external-file (file-path)
