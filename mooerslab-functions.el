@@ -20,7 +20,7 @@ The absence of periods will upset some audience members.
 Works with:  
 - org-mode lists (-, *, numbers)  
 - org-mode checklists (- [ ], * [ ])  
-- LaTeX \\item lists  
+https://github.com/cursorless-everywhere/emacs-cursorless/issues- LaTeX \\item lists  
 - LaTeX \\item checklists (\\item [ ])
 
 Usage: Place cursor anywhere in list. Enter M-x add-periods-to-list or C-c p.
@@ -63,15 +63,18 @@ Handles org-mode lists, checklists, and LaTeX lists."
 (global-set-key (kbd "C-c p") 'add-periods-to-list)
 
 
-(defun ml/org-add-periods-to-list-items ()  
-  "Add periods to the end of all items in the current org-mode list if missing.  
-Preserves both checked and unchecked checkboxes."  
-  (interactive)  
+(defun ml/org-add-periods-to-list-items (begin end)  
+  "Add periods to the end of all items in the selected org-mode list if missing.  
+Operates only on the selected region between BEGIN and END.  
+Preserves both checked and unchecked checkboxes and the initial dash."  
+  (interactive "r")  
   (save-excursion  
-    (goto-char (point-min))  
-    (while (re-search-forward "^\\([ \t]*-[ \t]+\\(?:\\[[ X]\\][ \t]+\\)?\\)\\(.*?\\)\\([^.]\\)[ \t]*$" nil t)  
-      (replace-match "\\1\\2\\3." nil nil))))  
-
+    (save-restriction  
+      (narrow-to-region begin end)  
+      (goto-char (point-min))  
+      (while (re-search-forward "^\\([ \t]*-[ \t]+\\(?:\\[[ X]\\][ \t]+\\)?\\)\\([^.\n]+\\)\\([^.]\n\\|$\\)" nil t)  
+        (replace-match "\\1\\2." nil nil)))))  
+            
 
 ;;; carry-forward-todos
 ;; When planning on a daily or daily basis in org, it is a pain to move the unfinished items forward manually.
