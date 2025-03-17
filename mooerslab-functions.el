@@ -75,7 +75,7 @@ Preserves both checked and unchecked checkboxes and the initial dash."
       (while (re-search-forward "^\\([ \t]*-[ \t]+\\(?:\\[[ X]\\][ \t]+\\)?\\)\\([^.\n]+\\)\\([^.]\n\\|$\\)" nil t)  
         (replace-match "\\1\\2." nil nil)))))  
             
-
+            
 ;;; carry-forward-todos
 ;; When planning on a daily or daily basis in org, it is a pain to move the unfinished items forward manually.
 ;; The manual cutting and pasting for five categories per day or week can take a long time.
