@@ -697,9 +697,36 @@ The regular expression ^\\*\\* .*:%s: is used to search for second-level headlin
   (let ((tag (if (string= tag "") "restart-here" tag)))
     (find-file file)
     (goto-char (point-min))
-    (if (re-search-forward (format "^\\*\\* .*:%s:" tag) nil t)
+    (if (re-search-forward (format "^\\*\\*\\* .*:%s:" tag) nil t)
         (org-end-of-subtree)
       (message "Tag not found"))))
+      
+;;; Move cursor to line with tag
+(defun ml/org-move-to-tag (file &optional tag)
+  "Move the cursor below a headline with a specific TAG.
+If TAG is not provided, use a hardcoded default tag.
+You have have to adjust the headline level in the funciton.
+The regular expression ^\\*\\* .*:%s: is used to search for second-level headlines (those starting with **) with the specified tag."
+  (interactive "fOrg file: \nsTag (leave empty for default): ")
+  (let ((tag (if (string= tag "") "appendtodos" tag)))
+    (goto-char (point-min))
+    (if (re-search-forward (format "^\\*\\*\\* .*:%s:" tag) nil t)
+        (org-end-of-subtree)
+      (message "Tag not found"))))
+      
+      
+;;; Append TODO list in writing log.
+(defun ml/append-todo-to-tagged-headline (new-todo &optional tag)
+        "Append a new TODO item to the bottom of the TODO list under a 3rd level headline marked by TAG.
+      If TAG is not provided, it defaults to appendtodos. This is for the writingLog.org file.
+      USAGE: M-x ml/append-todo-to-tagged-headline. Answer the prompts."
+        (interactive "sNew TODO: \nsTag (default appendtodos): ")
+        (let ((tag (if (string-empty-p tag) "appendtodos" tag)))
+          (save-excursion
+            (goto-char (point-min))
+            (when (re-search-forward (concat "^\\*\\*\\*.*:" tag ":") nil t)
+              (org-end-of-subtree)
+              (insert (concat "\n**** TODO " new-todo))))))
 
 
 ;;; open-template-with-citekey
