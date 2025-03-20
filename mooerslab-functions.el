@@ -715,19 +715,18 @@ The regular expression ^\\*\\* .*:%s: is used to search for second-level headlin
       (message "Tag not found"))))
       
       
-;;; Append TODO list in writing log.
 (defun ml/append-todo-to-tagged-headline (new-todo &optional tag)
-        "Append a new TODO item to the bottom of the TODO list under a 3rd level headline marked by TAG.
-      If TAG is not provided, it defaults to appendtodos. This is for the writingLog.org file.
-      USAGE: M-x ml/append-todo-to-tagged-headline. Answer the prompts."
-        (interactive "sNew TODO: \nsTag (default appendtodos): ")
-        (let ((tag (if (string-empty-p tag) "appendtodos" tag)))
-          (save-excursion
-            (goto-char (point-min))
-            (when (re-search-forward (concat "^\\*\\*\\*.*:" tag ":") nil t)
-              (org-end-of-subtree)
-              (insert (concat "\n**** TODO " new-todo))))))
-
+  "Append a new TODO item to the bottom of the TODO list under a 3rd level headline marked by TAG.
+If TAG is not provided, it defaults to appendtodos. This is for the writingLog.org file.
+USAGE: M-x ml/append-todo-to-tagged-headline. Answer the prompts. Works regardless of the position of the
+point relative to the headline with the tag."
+  (interactive "sNew TODO: \nsTag (default appendtodos): ")
+  (let ((tag (if (string-empty-p tag) "appendtodos" tag)))
+    (save-excursion
+      (goto-char (point-min))
+      (when (re-search-forward (concat "^\\*\\*\\*.*:" tag ":") nil t)
+        (org-end-of-subtree)
+        (insert (concat "\n**** TODO " new-todo))))))
 
 ;;; open-template-with-citekey
 ;% Open template file renamed with the citekey under the point.
