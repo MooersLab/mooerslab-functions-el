@@ -652,13 +652,13 @@ Automatically determines column count and validates against table structure."
 (global-set-key (kbd "C-c i") 'launch-ithoughtsx)
 
 
-;;; launch-jabref
-;% I favored the simplicity and power of JabRef for mamanging BibTeX entries.
-(defun ml/launch-jabref ()
-      "Launch jabRef application."
-      (interactive)
-      (shell-command "open -a JabRef"))
-    (global-set-key (kbd "C-c j") 'launch-jabref)
+; ;;; launch-jabref
+; ;% I favored the simplicity and power of JabRef for mamanging BibTeX entries.
+; (defun ml/launch-jabref ()
+;       "Launch jabRef application."
+;       (interactive)
+;       (shell-command "open -a JabRef"))
+;     (global-set-key (kbd "C-c j") 'launch-jabref)
 
 
 ;;; launch-timesspent
@@ -700,7 +700,17 @@ The regular expression ^\\*\\* .*:%s: is used to search for second-level headlin
     (if (re-search-forward (format "^\\*\\*\\* .*:%s:" tag) nil t)
         (org-end-of-subtree)
       (message "Tag not found"))))
-      
+
+
+(defun ml/org-convert-checkboxes-to-todos ()  
+  "Convert a list of checkbox items in to fourth level TODO headings. Customize code to meet your needs. This is for use with the writing log."  
+  (interactive)  
+  (save-excursion  
+    (goto-char (point-min))  
+    (while (re-search-forward "^- \\[ \\] \\(.*\\)" nil t)  
+      (replace-match "**** TODO \\1"))))  
+
+
 ;;; Move cursor to line with tag
 (defun ml/org-move-to-tag (file &optional tag)
   "Move the cursor below a headline with a specific TAG.
@@ -727,6 +737,7 @@ point relative to the headline with the tag."
       (when (re-search-forward (concat "^\\*\\*\\*.*:" tag ":") nil t)
         (org-end-of-subtree)
         (insert (concat "\n**** TODO " new-todo))))))
+
 
 ;;; open-template-with-citekey
 ;% Open template file renamed with the citekey under the point.
