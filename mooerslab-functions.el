@@ -181,13 +181,13 @@ Preserves both checked and unchecked checkboxes and the initial dash."
        t 'tree)))))
 (global-set-key (kbd "C-c f") 'ml/carry-forward-todos)
 
-(defun ml/org-add-periods-to-list-items ()  
-  "Add periods to the end of all items in the current org-mode list if missing."  
-  (interactive)  
-  (save-excursion  
-    (goto-char (point-min))  
-    (while (re-search-forward "^[ \t]*[-+*] \\(.*?\\)\\([^.]\\)[ \t]*$" nil t)  
-      (replace-match "\\1\\2." nil nil))))  
+; (defun ml/org-add-periods-to-list-items ()
+;   "Add periods to the end of all items in the current org-mode list if missing."
+;   (interactive)
+;   (save-excursion
+;     (goto-char (point-min))
+;     (while (re-search-forward "^[ \t]*[-+*] \\(.*?\\)\\([^.]\\)[ \t]*$" nil t)
+;       (replace-match "\\1\\2." nil nil))))
 
 ;;; org-insert-external-file
 (defun ml/org-insert-external-file (file-path)
@@ -203,9 +203,9 @@ Prompts for a file path via minibuffer and includes a timestamp in a comment."
 ;;; org-insert-protocol-file
 ;% Insert the contents of a protocol file into the current org file
 (defun ml/org-insert-protocol-file (file-path)
-  "Insert the contents of a protocol file from ~/protocols-org into the current org-mode file.
+  "Insert the contents of a protocol file from ~/org-roam/protocols into the current org-mode file.
 Prompts for a file path via minibuffer and includes a timestamp in a comment."
-  (interactive (list (read-file-name "Directory `~/protocols-org/`: " "~/" "protocols-org/")))
+  (interactive (list (read-file-name "Directory `~/org-roam/protocols`: " "~/" "org-roam/" "protocols/")))
   (let ((full-path (expand-file-name file-path))
         (timestamp (format-time-string "%Y-%m-%d %H:%M:%S")))
     (insert (format "#+BEGIN_COMMENT\n# File %s inserted on %s\n#+END_COMMENT\n\n" full-path timestamp))
