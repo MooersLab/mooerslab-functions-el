@@ -247,6 +247,39 @@ Prompts for a file path via minibuffer and includes a timestamp in a comment."
           (set-marker end nil)))
     (message "No region selected")))
 
+
+(defun ml/org-convert-itemize-to-checklist ()  
+  "Convert an org-mode itemized list (starting with '-') to a checklist (starting with '- [ ]')."  
+  (interactive)  
+  (save-excursion  
+    (let ((count 0))  
+      ;; Go to beginning of buffer or narrow region  
+      (goto-char (if (use-region-p) (region-beginning) (point-min)))  
+      ;; Search and replace  
+      (while (re-search-forward "^[ \t]*\\(-\\) "   
+                               (if (use-region-p) (region-end) (point-max))   
+                               t)  
+        (replace-match "\\1 [ ] " t)  
+        (setq count (1+ count)))  
+      (message "Converted %d items to checklist" count))))
+
+
+(defun ml/org-convert-itemize-to-fourth-todos ()  
+  "Convert an org-mode itemized list (starting with '-') to fourth-order TODOs (starting with '****')."  
+  (interactive)  
+  (save-excursion  
+    (let ((count 0))  
+      ;; Go to beginning of buffer or narrow region  
+      (goto-char (if (use-region-p) (region-beginning) (point-min)))  
+      ;; Search and replace  
+      (while (re-search-forward "^[ \t]*\\(-\\) \\(.+\\)$"   
+                               (if (use-region-p) (region-end) (point-max))   
+                               t)  
+        (replace-match "**** TODO \\2" t)  
+        (setq count (1+ count)))  
+      (message "Converted %d items to fourth-order TODOs" count))))
+
+
 ;;; region-to-itemized-in-latex
 (defun ml/region-to-itemized-in-latex (start end)
   "Converts the region between START and END to an itemized list in LaTeX"
