@@ -12,6 +12,76 @@
 
 ;;; This package is known to work (insofar as it's tested) with Emacs 30.1.
 
+;% This function eases adding log files to the list of files for org-agenda to search for todos.
+;% Another example of spending an hour to save a minute!
+(defun ml/append-log-to-org-agenda-files ()
+  "Interactively append a log####.org file to org-agenda-files list.
+Updates both the current org-agenda-files variable in memory and the setq statement in init.el.
+Customize the path to your init.el file."
+  (interactive)
+  (let* ((home-dir (expand-file-name "~/"))
+         ;; Find all log####.org files in home directory and immediate subdirectories
+         (org-files
+          (delete-dups
+           (append
+            ;; Check home directory
+            (directory-files home-dir t "^log[0-9]\\{4\\}\\.org$")
+            ;; Check immediate subdirectories
+            (apply #'append
+                  (mapcar
+                   (lambda (dir)
+                     (when (and (file-directory-p dir)
+                              (not (string-prefix-p "." (file-name-nondirectory dir))))
+                       (directory-files dir t "^log[0-9]\\{4\\}\\.org$")))
+                   (directory-files home-dir t directory-files-no-dot-files-regexp))))))
+         ;; Remove home-dir prefix for cleaner display
+         (relative-files (mapcar (lambda (f) 
+                                 (substring f (length home-dir))) 
+                               org-files))
+         ;; Get current agenda files without home-dir prefix
+         (current-agenda (mapcar (lambda (f) 
+                                 (substring f (length home-dir))) 
+                               org-agenda-files))
+         ;; Only show log files not already in agenda-files
+         (available-logs (cl-set-difference relative-files current-agenda 
+                                          :test 'string=))
+         ;; Select file using completion
+         (selected-file (completing-read 
+                        (format "Select log####.org file to append (current agenda files: %d): " 
+                                (length org-agenda-files))
+                        (sort available-logs 'string<))))
+    
+    ;; Append the selected file with full path if one was selected
+    (when (and selected-file (not (string-empty-p selected-file)))
+      (let* ((full-path (expand-file-name selected-file home-dir))
+             (init-file (expand-file-name "~/e30fewpackages/init.el")))
+        (if (member full-path org-agenda-files)
+            (message "File already in org-agenda-files: %s" selected-file)
+          (progn
+            ;; Update the current org-agenda-files
+            (setq org-agenda-files (append org-agenda-files (list full-path)))
+            
+            ;; Update init.el
+            (with-temp-buffer
+              (insert-file-contents init-file)
+              (goto-char (point-min))
+              (when (re-search-forward "(setq org-agenda-files '(" nil t)
+                (let ((start (point))
+                      (end (save-excursion
+                            (forward-sexp)
+                            (1- (point)))))
+                  ;; Replace the list content
+                  (delete-region start end)
+                  (insert "\n")
+                  (dolist (file org-agenda-files)
+                    (insert (format "                             \"%s\"\n" file)))
+                  (insert "                         "))
+                ;; Save the modified init.el
+                (write-region (point-min) (point-max) init-file)))
+            
+            (message "Added to org-agenda-files and init.el: %s" selected-file)))))))
+
+
 
 (defun ml/org-add-periods-to-list-items (begin end)  
   "Add periods to the end of all items in the selected org-mode list if missing.  
