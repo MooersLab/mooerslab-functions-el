@@ -1,6 +1,6 @@
 ;;; mooerslab-functions.el --- A collection of utility functions to improve our workflows.
 
-;; Copyright (C) 2025 Blaine Mooers, University of Oklahoma Health Sciences Center
+;; Copyright (C) 2025 Blaine Mooers and the University of Oklahoma Health Sciences Center Board of Regents
 
 ;; Author: blaine-mooers@ouhsc.edu
 ;; Maintainer: blaine-mooers@ouhsc.edu
@@ -8,11 +8,27 @@
 ;; Version: 0.5
 ;; Keywords: data, pdb
 ;; License: MIT
+;; Updated 2025 March 29
 
 ;;; This package is known to work (insofar as it's tested) with Emacs 30.1.
 
+
+(defun ml/org-add-periods-to-list-items (begin end)  
+  "Add periods to the end of all items in the selected org-mode list if missing.  
+Operates only on the selected region between BEGIN and END.  
+Preserves both checked and unchecked checkboxes and the initial dash.
+Good for preparing bullet lists for slides."  
+  (interactive "r")  
+  (save-excursion  
+    (save-restriction  
+      (narrow-to-region begin end)  
+      (goto-char (point-min))  
+      (while (re-search-forward "^\\([ \t]*-[ \t]+\\(?:\\[[ X]\\][ \t]+\\)?\\)\\([^.\n]+\\)\\([^.]\n\\|$\\)" nil t)  
+        (replace-match "\\1\\2." nil nil)))))  
+
+
 ;;; add-periods-to-list
-(defun ml/add-periods-to-list ()  
+(defun ml/org-or-latex-add-periods-to-list ()  
   "Add a period to the end of each line in the current list if missing.
 Designed to work in both org and latex files.
 This is a huge problem with lists in slideshows.
@@ -23,7 +39,7 @@ Works with:
 https://github.com/cursorless-everywhere/emacs-cursorless/issues- LaTeX \\item lists  
 - LaTeX \\item checklists (\\item [ ])
 
-Usage: Place cursor anywhere in list. Enter M-x add-periods-to-list or C-c p.
+Usage: Place cursor anywhere in list. Enter M-x org-or-latex-add-periods-to-list or C-c p.
 Developed with the help of Claude 3.5 Sonnet."  
   (interactive)  
   (save-excursion  
@@ -40,6 +56,8 @@ Developed with the help of Claude 3.5 Sonnet."
                      (looking-at-p "^\\s-*\\([-*]\\(?: \\[[ X-]\\]\\)?\\|[0-9]+[.)]\\|\\\\item\\(?: \\[[ X-]\\]\\)?\\)")))  
           (insert "."))  
         (forward-line)))))  
+(global-set-key (kbd "C-c p") 'org-or-latex-add-periods-to-list)
+
 
 (defun ml/beginning-of-list ()  
   "Move to beginning of the current list.  
@@ -51,6 +69,7 @@ Handles org-mode lists, checklists, and LaTeX lists."
     (forward-line -1))  
   (forward-line 1))  
 
+
 (defun ml/end-of-list ()  
   "Move to end of the current list.  
 Handles org-mode lists, checklists, and LaTeX lists."  
@@ -60,22 +79,7 @@ Handles org-mode lists, checklists, and LaTeX lists."
                 (looking-at-p "^\\s-*\\([-*]\\(?: \\[[ X-]\\]\\)?\\|[0-9]+[.)]\\|\\\\item\\(?: \\[[ X-]\\]\\)?\\)")))  
     (forward-line 1)))
 
-(global-set-key (kbd "C-c p") 'add-periods-to-list)
 
-
-(defun ml/org-add-periods-to-list-items (begin end)  
-  "Add periods to the end of all items in the selected org-mode list if missing.  
-Operates only on the selected region between BEGIN and END.  
-Preserves both checked and unchecked checkboxes and the initial dash."  
-  (interactive "r")  
-  (save-excursion  
-    (save-restriction  
-      (narrow-to-region begin end)  
-      (goto-char (point-min))  
-      (while (re-search-forward "^\\([ \t]*-[ \t]+\\(?:\\[[ X]\\][ \t]+\\)?\\)\\([^.\n]+\\)\\([^.]\n\\|$\\)" nil t)  
-        (replace-match "\\1\\2." nil nil)))))  
-            
-            
 ;;; carry-forward-todos
 ;; When planning on a daily or daily basis in org, it is a pain to move the unfinished items forward manually.
 ;; The manual cutting and pasting for five categories per day or week can take a long time.
@@ -181,13 +185,6 @@ Preserves both checked and unchecked checkboxes and the initial dash."
        t 'tree)))))
 (global-set-key (kbd "C-c f") 'ml/carry-forward-todos)
 
-; (defun ml/org-add-periods-to-list-items ()
-;   "Add periods to the end of all items in the current org-mode list if missing."
-;   (interactive)
-;   (save-excursion
-;     (goto-char (point-min))
-;     (while (re-search-forward "^[ \t]*[-+*] \\(.*?\\)\\([^.]\\)[ \t]*$" nil t)
-;       (replace-match "\\1\\2." nil nil))))
 
 ;;; org-insert-external-file
 (defun ml/org-insert-external-file (file-path)
@@ -200,8 +197,10 @@ Prompts for a file path via minibuffer and includes a timestamp in a comment."
     (goto-char (point-max))))
 (global-set-key (kbd "C-c S") 'org-insert-external-file)
 
+
 ;;; org-insert-protocol-file
-;% Insert the contents of a protocol file into the current org file
+;% Insert the contents of a protocol file into the current org file.
+;% I am using org-capture to do this in org-roam these days.
 (defun ml/org-insert-protocol-file (file-path)
   "Insert the contents of a protocol file from ~/org-roam/protocols into the current org-mode file.
 Prompts for a file path via minibuffer and includes a timestamp in a comment."
@@ -213,8 +212,9 @@ Prompts for a file path via minibuffer and includes a timestamp in a comment."
     (goto-char (point-max))))
 (global-set-key (kbd "C-c P") 'org-insert-protocol-file)
 
+
 ;;; region-to-itemized-list-in-org
-(defun ml/region-to-itemized-list-in-org ()
+(defun ml/org-region-to-itemized-list ()
   "Convert the lines in a selected region into an itemized list."
   (interactive)
   (let ((start (region-beginning))
@@ -231,9 +231,10 @@ Prompts for a file path via minibuffer and includes a timestamp in a comment."
     (insert str))))
 (global-set-key (kbd "C-c l") 'region-to-itemized-list)
 
+
 ;;; region-to-todos-in-org
-(defun ml/region-to-todos-in-org ()
-  "Convert each line in the region to a level 3 TODO heading."
+(defun ml/org-convert-region-to-fourth-level-todos ()
+  "Convert each line in the region to a level fourth level TODO heading."
   (interactive)
   (if (use-region-p)
       (save-excursion
@@ -242,13 +243,13 @@ Prompts for a file path via minibuffer and includes a timestamp in a comment."
           (goto-char beg)
           (while (< (point) end)
             (beginning-of-line)
-            (insert "*** TODO ")
+            (insert "**** TODO ")
             (forward-line 1))
           (set-marker end nil)))
     (message "No region selected")))
 
 
-(defun ml/org-convert-itemize-to-checklist ()  
+(defun ml/org-convert-itemized-list-in-region-to-checklist ()  
   "Convert an org-mode itemized list (starting with '-') to a checklist (starting with '- [ ]')."  
   (interactive)  
   (save-excursion  
@@ -264,24 +265,53 @@ Prompts for a file path via minibuffer and includes a timestamp in a comment."
       (message "Converted %d items to checklist" count))))
 
 
-(defun ml/org-convert-itemize-to-fourth-todos ()  
-  "Convert an org-mode itemized list (starting with '-') to fourth-order TODOs (starting with '****')."  
-  (interactive)  
-  (save-excursion  
-    (let ((count 0))  
-      ;; Go to beginning of buffer or narrow region  
-      (goto-char (if (use-region-p) (region-beginning) (point-min)))  
-      ;; Search and replace  
-      (while (re-search-forward "^[ \t]*\\(-\\) \\(.+\\)$"   
-                               (if (use-region-p) (region-end) (point-max))   
-                               t)  
-        (replace-match "**** TODO \\2" t)  
-        (setq count (1+ count)))  
-      (message "Converted %d items to fourth-order TODOs" count))))
+(defun ml/org-convert-itemized-list-in-region-to-fourth-level-todos ()
+  "Convert selected region of org-mode itemized list to fourth-order TODOs.
+Requires an active region selection."
+  (interactive)
+  (if (not (region-active-p))
+      (message "Please select a region first")
+    (save-excursion
+      (let ((count 0)
+            (begin (region-beginning))
+            (end (region-end)))
+        ;; Narrow to region
+        (save-restriction
+          (narrow-to-region begin end)
+          ;; Go to beginning of narrowed region
+          (goto-char (point-min))
+          ;; Search and replace within narrow
+          (while (re-search-forward "^[ \t]*\\(-\\) \\(.+\\)$" nil t)
+            (replace-match "**** TODO \\2" t)
+            (setq count (1+ count)))
+          (message "Converted %d items to fourth-order TODOs" count))))))
+
+
+(defun ml/org-convert-checklist-in-region-to-fourth-level-todos ()
+  "Convert selected region of org-mode checklist to fourth-order TODOs.
+Converts items starting with '- [ ]' to '**** TODO'.
+Requires an active region selection."
+  (interactive)
+  (if (not (region-active-p))
+      (message "Please select a region first")
+    (save-excursion
+      (let ((count 0)
+            (begin (region-beginning))
+            (end (region-end)))
+        ;; Narrow to region
+        (save-restriction
+          (narrow-to-region begin end)
+          ;; Go to beginning of narrowed region
+          (goto-char (point-min))
+          ;; Search and replace within narrow
+          (while (re-search-forward "^[ \t]*\\(-\\) \\[[ X]\\] \\(.+\\)$" nil t)
+            (replace-match "**** TODO \\2" t)
+            (setq count (1+ count)))
+          (message "Converted %d checklist items to fourth-order TODOs" count))))))
 
 
 ;;; region-to-itemized-in-latex
-(defun ml/region-to-itemized-in-latex (start end)
+(defun ml/latex-region-to-itemized-list (start end)
   "Converts the region between START and END to an itemized list in LaTeX"
   (interactive "r")  ; Use "r" to read region bounds automatically
   (let* ((text (buffer-substring-no-properties start end))
@@ -295,9 +325,10 @@ Prompts for a file path via minibuffer and includes a timestamp in a comment."
     (delete-region start end)
     (goto-char start)
     (insert latex-string)))
-    
+
+
 ;;; region of csv list to latex
-(defun ml/convert-csv-to-latex-itemize (start end)  
+(defun ml/latex-convert-csv-to-itemized-list (start end)  
   "Convert a comma-separated list in the selected region to a LaTeX itemized list."  
   (interactive "r")  
   (let ((csv-text (buffer-substring-no-properties start end)))  
@@ -308,8 +339,10 @@ Prompts for a file path via minibuffer and includes a timestamp in a comment."
     (insert "\\end{itemize}\n")))
     
 
+
 ;;; convert-init-el-to-init-org
 ;% The goal is to convert the init.el file to a org file so that it can be rendered on GitHub or rendered locally to html or PDF.
+;% This function is a work in progress.
 (defun ml/convert-init-el-to-org (input-file output-file)
   "Convert an Emacs init.el file to an Org-mode file."
   (with-temp-buffer
@@ -348,6 +381,7 @@ Prompts for a file path via minibuffer and includes a timestamp in a comment."
 ;% Example usage:
 ;% (convert-init-el-to-org "~/path/to/init.el" "~/path/to/init.org")
 
+
 ;;; Convert a selected latex list of items to a org-mode list
 ;%  To use this function, select the region containing the LaTeX list and run:
 ;%  M-x latex-to-org-list-region
@@ -361,6 +395,7 @@ Prompts for a file path via minibuffer and includes a timestamp in a comment."
 
 ;;; ml/region-csv-to-org-table
 ;% Ceontert selected rows in CSV format into a org-tabl
+
 
 (defun ml/region-csv-to-org-table ()  
   "Convert CSV data in region to org table format.  
@@ -425,6 +460,7 @@ Assumes first row contains headers and uses commas as delimiters."
     (insert "|")
     (dotimes (_ cols)
       (insert "----+"))))
+
 
 ;;;  count-non-blank-lines
 ;% Count the number of non-blank lines in the current buffer.
@@ -499,7 +535,6 @@ CAPTION: (Optional) A string to use as the table caption."
     (switch-to-buffer output-buffer)))
 
 
-
 ;;; export-csv-to-quiz-table
 ;% Usage example:
 ;% (export-csv-to-qiterm "~/6233iterm/qiterm.csv" "~/6233iterm/qiterm.db" "qiterm")
@@ -527,6 +562,7 @@ CAPTION: (Optional) A string to use as the table caption."
     (sqlite3-close db)
     (message "Data successfully appended to %s" table-name)))
 )
+
 
 ;;; export-csv-to-matched-sqlite-table 
 ;% Usage example:
@@ -570,7 +606,6 @@ Automatically determines column count and validates against table structure."
       (sqlite3-close db)  
       (message "Data successfully appended to %s" table-name))))
 )
-
 
 
 ;;; find file and go to line number
@@ -637,6 +672,7 @@ Automatically determines column count and validates against table structure."
            (mapconcat (lambda (key) (concat " " key)) citekeys "\n")))  
       (insert formatted-citekeys "\n"))))
 
+
 ;;; wrap-citekey-and-create-tex-file
 ;% Used to convert a citekey into a section heading.
 (defun ml/wrap-citekey-and-create-tex-file ()  
@@ -664,6 +700,7 @@ Automatically determines column count and validates against table structure."
         (find-file tex-file-path)  
         (message "Replaced citekey, created .tex file, and opened it: %s" tex-file-path)))))
 
+
 ;;; insert-org-captioned-figure
 ;%  The function prompts the user for the image file path and name, the label, and the caption.
 (defun ml/insert-org-captioned-figure ()
@@ -676,8 +713,10 @@ Automatically determines column count and validates against table structure."
     (insert (format "#+NAME: %s\n" label))
     (insert (format "[[file:%s]]\n" image-name))))
 
+
 ;;; launch-ithoughtsx
-;% This is the best mindmapping software that I have encountered.
+;% This is the best mindmapping software that I have encountered. 
+;% Probably better to make a bash alias to avoid tying up keybindings.
 (defun ml/launch-ithoughtsx ()
   "Launch iThoughtsX application."
   (interactive)
@@ -687,6 +726,8 @@ Automatically determines column count and validates against table structure."
 
 ; ;;; launch-jabref
 ; ;% I favored the simplicity and power of JabRef for mamanging BibTeX entries.
+;% Probably better to make a bash alias to avoid tying up keybindings.
+;% The Emacs analog is ebib, which is awesome.
 ; (defun ml/launch-jabref ()
 ;       "Launch jabRef application."
 ;       (interactive)
@@ -696,6 +737,7 @@ Automatically determines column count and validates against table structure."
 
 ;;; launch-timesspent
 ;% This is a sqlite database where I track my effort.
+;% Probably better to make a bash alias to avoid tying up keybindings.
 (defun ml/launch-timesspent ()
       "Launch timesspent database."
       (interactive)
@@ -735,15 +777,6 @@ The regular expression ^\\*\\* .*:%s: is used to search for second-level headlin
       (message "Tag not found"))))
 
 
-(defun ml/org-convert-checkboxes-to-todos ()  
-  "Convert a list of checkbox items in to fourth level TODO headings. Customize code to meet your needs. This is for use with the writing log."  
-  (interactive)  
-  (save-excursion  
-    (goto-char (point-min))  
-    (while (re-search-forward "^- \\[ \\] \\(.*\\)" nil t)  
-      (replace-match "**** TODO \\1"))))  
-
-
 ;;; Move cursor to line with tag
 (defun ml/org-move-to-tag (file &optional tag)
   "Move the cursor below a headline with a specific TAG.
@@ -758,7 +791,7 @@ The regular expression ^\\*\\* .*:%s: is used to search for second-level headlin
       (message "Tag not found"))))
       
       
-(defun ml/append-todo-to-tagged-headline (new-todo &optional tag)
+(defun ml/org-append-todo-to-tagged-fourth-level-headline (new-todo &optional tag)
   "Append a new TODO item to the bottom of the TODO list under a 3rd level headline marked by TAG.
 If TAG is not provided, it defaults to appendtodos. This is for the writingLog.org file.
 USAGE: M-x ml/append-todo-to-tagged-headline. Answer the prompts. Works regardless of the position of the
@@ -795,8 +828,7 @@ point relative to the headline with the tag."
 (global-set-key (kbd "C-c z") 'open-new-abibnote-on-citekey)
 
 
-
-;;; Play a YouTube video with mpv
+;;; Play a YouTube video distraction-free with mpv
 ;%  You insert the YouTube url in the minibufffer.
 ;%  You have to install mpv with a package manager and another binary package.
 ;%  sudo curl -L https://yt-dl.org/downloads/latest/youtube-dl -o /usr/local/bin/youtube-dl
@@ -849,6 +881,7 @@ point relative to the headline with the tag."
   (process-send-string nil "echo 'test2'\n"))
 
 ;;; Split line with many sentences into one line per sentence.
+;% The function is priceless when working with transripts from whisper-file.
 (defun ml/split-sentences-into-lines (start end)  
   "Move each sentence in the region to its own line, ignoring common titles and abbreviations."  
   (interactive "r")  
@@ -876,6 +909,7 @@ point relative to the headline with the tag."
 
 
 ;; ;;; widen-frame to the right. Enter period have first issue.
+;; ;% Redundant with built in commands.
 ;; (defun ml/widen-frame ()
 ;;   "Increase the width of the current frame by 10 columns."
 ;;   (interactive)
