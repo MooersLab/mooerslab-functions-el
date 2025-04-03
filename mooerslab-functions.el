@@ -12,7 +12,7 @@
 
 ;;; This package is known to work (insofar as it's tested) with Emacs 30.1.
 
-;% This function eases adding log files to the list of files for org-agenda to search for todos.
+;% This function eases adding log files to the list of files for org-agenda to search for to-dos.
 ;% Another example of spending an hour to save a minute!
 (defun ml/append-log-to-org-agenda-files ()
   "Interactively append a log####.org file to org-agenda-files list.
@@ -20,7 +20,7 @@ Updates both the current org-agenda-files variable in memory and the setq statem
 Customize the path to your init.el file."
   (interactive)
   (let* ((home-dir (expand-file-name "~/"))
-         ;; Find all log####.org files in home directory and immediate subdirectories
+         ;; Find all log####.org files in the home directory and immediate sub-directories
          (org-files
           (delete-dups
            (append
@@ -85,9 +85,9 @@ Customize the path to your init.el file."
 
 (defun ml/org-add-periods-to-list-items (begin end)  
   "Add periods to the end of all items in the selected org-mode list if missing.  
-Operates only on the selected region between BEGIN and END.  
+It operates only in the selected region between BEGIN and END.  
 Preserves both checked and unchecked checkboxes and the initial dash.
-Good for preparing bullet lists for slides."  
+Suitable for preparing bullet lists for slides."  
   (interactive "r")  
   (save-excursion  
     (save-restriction  
@@ -101,7 +101,7 @@ Good for preparing bullet lists for slides."
 (defun ml/org-or-latex-add-periods-to-list ()  
   "Add a period to the end of each line in the current list if missing.
 Designed to work in both org and latex files.
-This is a huge problem with lists in slideshows.
+This is a massive problem with lists in slideshows.
 The absence of periods will upset some audience members.  
 Works with:  
 - org-mode lists (-, *, numbers)  
@@ -151,7 +151,7 @@ Handles org-mode lists, checklists, and LaTeX lists."
 
 
 ;;; carry-forward-todos
-;; When planning on a daily or daily basis in org, it is a pain to move the unfinished items forward manually.
+;; When planning daily in org, moving the unfinished items forward manually is a pain.
 ;; The manual cutting and pasting for five categories per day or week can take a long time.
 ;; I know that org-agenda can do something like this.
 ;; I want more control.
@@ -304,7 +304,7 @@ Prompts for a file path via minibuffer and includes a timestamp in a comment."
 
 ;;; region-to-todos-in-org
 (defun ml/org-convert-region-to-fourth-level-todos ()
-  "Convert each line in the region to a level fourth level TODO heading."
+  "Convert each line in the region to a level four heading."
   (interactive)
   (if (use-region-p)
       (save-excursion
@@ -411,7 +411,7 @@ Requires an active region selection."
 
 
 ;;; convert-init-el-to-init-org
-;% The goal is to convert the init.el file to a org file so that it can be rendered on GitHub or rendered locally to html or PDF.
+;% The goal is to convert the init.el file to an org file is to be rendered on GitHub or locally in HTML or PDF.
 ;% This function is a work in progress.
 (defun ml/convert-init-el-to-org (input-file output-file)
   "Convert an Emacs init.el file to an Org-mode file."
@@ -452,7 +452,7 @@ Requires an active region selection."
 ;% (convert-init-el-to-org "~/path/to/init.el" "~/path/to/init.org")
 
 
-;;; Convert a selected latex list of items to a org-mode list
+;;; Convert a selected latex list of items to an org-mode list
 ;%  To use this function, select the region containing the LaTeX list and run:
 ;%  M-x latex-to-org-list-region
 (defun ml/latex-to-org-list-region (start end)
@@ -502,7 +502,7 @@ Assumes first row contains headers and uses commas as delimiters."
 
 
 ;;; create-org-table-with-caption
-;%  This interactive function prompts the user for the number of rows, columns, and caption of the table.
+;%  This interactive function prompts the user to select the table's number of rows, columns, and caption.
 (defun ml/create-org-table-with-caption ()
   "This interactive function prompts the user for the number of rows. columns, and the caption of the table."
   (interactive)
@@ -547,7 +547,7 @@ Assumes first row contains headers and uses commas as delimiters."
     (message "Number of non-blank lines: %d" count)))
 
 
-;;;## Convert CSV file into an org table. Will convert internal commas inside strings into pipes.
+;;;## Convert CSV file into an org table. It will convert internal commas inside strings into pipes.
 (defun ml/csv2org (csv-file &optional caption)  
   "Convert a CSV file to an Org-mode table.  
 
@@ -688,7 +688,7 @@ Automatically determines column count and validates against table structure."
 ;;; ffap: find file at point
 ;%  https://unix.stackexchange.com/questions/691444/how-do-i-open-a-file-at-specific-line-in-a-running-emacs
 ;%  have ffap pick up line number and goto-line
-;%  found on emacswiki : https://www.emacswiki.org/emacs/FindFileAtPoint#h5o-6
+;%  found on emacswiki: https://www.emacswiki.org/emacs/FindFileAtPoint#h5o-6
 (defvar ffap-file-at-point-line-number nil
   "Variable to hold line number from the last `ffap-file-at-point' call.")
 (defadvice ffap-file-at-point (after ffap-store-line-number activate)
@@ -785,7 +785,7 @@ Automatically determines column count and validates against table structure."
 
 
 ;;; launch-ithoughtsx
-;% This is the best mindmapping software that I have encountered. 
+;% This is the best mind mapping software that I have encountered. 
 ;% Probably better to make a bash alias to avoid tying up keybindings.
 (defun ml/launch-ithoughtsx ()
   "Launch iThoughtsX application."
@@ -795,7 +795,7 @@ Automatically determines column count and validates against table structure."
 
 
 ; ;;; launch-jabref
-; ;% I favored the simplicity and power of JabRef for mamanging BibTeX entries.
+; ;% I favored the simplicity and power of JabRef for managing BibTeX entries.
 ;% Probably better to make a bash alias to avoid tying up keybindings.
 ;% The Emacs analog is ebib, which is awesome.
 ; (defun ml/launch-jabref ()
@@ -836,8 +836,8 @@ Automatically determines column count and validates against table structure."
 (defun ml/open-org-file-and-move-to-tag (file &optional tag)
   "Open an Org file and move the cursor below a headline with a specific TAG.
 If TAG is not provided, use a hardcoded default tag.
-You have have to adjust the headline level in the funciton.
-The regular expression ^\\*\\* .*:%s: is used to search for second-level headlines (those starting with **) with the specified tag."
+You have to adjust the headline level in the function.
+The regular expression ^\\*\\* .*:%s: is used to search for second-level headlines (starting with **) with the specified tag."
   (interactive "fOrg file: \nsTag (leave empty for default): ")
   (let ((tag (if (string= tag "") "restart-here" tag)))
     (find-file file)
@@ -851,8 +851,8 @@ The regular expression ^\\*\\* .*:%s: is used to search for second-level headlin
 (defun ml/org-move-to-tag (file &optional tag)
   "Move the cursor below a headline with a specific TAG.
 If TAG is not provided, use a hardcoded default tag.
-You have have to adjust the headline level in the funciton.
-The regular expression ^\\*\\* .*:%s: is used to search for second-level headlines (those starting with **) with the specified tag."
+You have to adjust the headline level in the function.
+The regular expression ^\\*\\* .*:%s: is used to search for second-level headlines (starting with **) with the specified tag."
   (interactive "fOrg file: \nsTag (leave empty for default): ")
   (let ((tag (if (string= tag "") "appendtodos" tag)))
     (goto-char (point-min))
@@ -863,7 +863,7 @@ The regular expression ^\\*\\* .*:%s: is used to search for second-level headlin
       
 (defun ml/org-append-todo-to-tagged-fourth-level-headline (new-todo &optional tag)
   "Append a new TODO item to the bottom of the TODO list under a 3rd level headline marked by TAG.
-If TAG is not provided, it defaults to appendtodos. This is for the writingLog.org file.
+If TAG is not provided, it defaults to the :appendtodos: tag. This is for the writingLog.org file.
 USAGE: M-x ml/append-todo-to-tagged-headline. Answer the prompts. Works regardless of the position of the
 point relative to the headline with the tag."
   (interactive "sNew TODO: \nsTag (default appendtodos): ")
@@ -915,28 +915,28 @@ point relative to the headline with the tag."
 
 ;;; Reload the initialization file after editing it in Emacs
 (defun ml/reload-init-e30f ()
-  "Reload the init.el file for e30fewpacakges. Edit the path to suite your needs."
+  "Reload the init.el file for e30fewpacakges. Edit the path to suit your needs."
   (interactive)
   (load-file "~/e30fewpackages/init.el"))
 
 
 ;;; Open the init.el file for editing.
 (defun ml/open-init-e30f ()
-  "Open the init.el file for editing. Edit the path to suite your needs."
+  "Open the init.el file for editing. Edit the path to suit your needs."
   (interactive)
   (find-file "~/e30fewpackages/init.el"))
 
 
 ;;; Reload the my-hydras file after editing it in Emacs.
 (defun ml/reload-my-hydras ()
-    "Reload my-hydras.el. Edit the path to suite your needs."
+    "Reload my-hydras.el. Edit the path to suit your needs."
     (interactive)
     (load-file "~/e30fewpackages/my-hydras/my-hydras.el"))
 
 
 ;;; Open the init.el my-hydras for editing.
 (defun ml/open-my-hydras ()
-  "Open the init.el file for editing. Edit the path to suite your needs."
+  "Open the init.el file for editing. Edit the path to suit your needs."
   (interactive)
   (find-file "~/e30fewpackages/my-hydras/my-hydras.el"))
 
@@ -950,7 +950,7 @@ point relative to the headline with the tag."
   (process-send-string nil "echo 'test1'\n")
   (process-send-string nil "echo 'test2'\n"))
 
-;;; Split line with many sentences into one line per sentence.
+;;; Split long lines into one line per sentence.
 ;% The function is priceless when working with transripts from whisper-file.
 (defun ml/split-sentences-into-lines (start end)  
   "Move each sentence in the region to its own line, ignoring common titles and abbreviations."  
@@ -979,7 +979,7 @@ point relative to the headline with the tag."
 
 
 ;; ;;; widen-frame to the right. Enter period have first issue.
-;; ;% Redundant with built in commands.
+;; ;% Redundant with built-in commands.
 ;; (defun ml/widen-frame ()
 ;;   "Increase the width of the current frame by 10 columns."
 ;;   (interactive)
