@@ -35,22 +35,22 @@ Customize the path to your init.el file."
                        (directory-files dir t "^log[0-9]\\{4\\}\\.org$")))
                    (directory-files home-dir t directory-files-no-dot-files-regexp))))))
          ;; Remove home-dir prefix for cleaner display
-         (relative-files (mapcar (lambda (f) 
-                                 (substring f (length home-dir))) 
+         (relative-files (mapcar (lambda (f)
+                                 (substring f (length home-dir)))
                                org-files))
          ;; Get current agenda files without home-dir prefix
-         (current-agenda (mapcar (lambda (f) 
-                                 (substring f (length home-dir))) 
+         (current-agenda (mapcar (lambda (f)
+                                 (substring f (length home-dir)))
                                org-agenda-files))
          ;; Only show log files not already in agenda-files
-         (available-logs (cl-set-difference relative-files current-agenda 
+         (available-logs (cl-set-difference relative-files current-agenda
                                           :test 'string=))
          ;; Select file using completion
-         (selected-file (completing-read 
-                        (format "Select log####.org file to append (current agenda files: %d): " 
+         (selected-file (completing-read
+                        (format "Select log####.org file to append (current agenda files: %d): "
                                 (length org-agenda-files))
                         (sort available-logs 'string<))))
-    
+
     ;; Append the selected file with full path if one was selected
     (when (and selected-file (not (string-empty-p selected-file)))
       (let* ((full-path (expand-file-name selected-file home-dir))
@@ -60,7 +60,7 @@ Customize the path to your init.el file."
           (progn
             ;; Update the current org-agenda-files
             (setq org-agenda-files (append org-agenda-files (list full-path)))
-            
+
             ;; Update init.el
             (with-temp-buffer
               (insert-file-contents init-file)
@@ -78,75 +78,75 @@ Customize the path to your init.el file."
                   (insert "                         "))
                 ;; Save the modified init.el
                 (write-region (point-min) (point-max) init-file)))
-            
+
             (message "Added to org-agenda-files and init.el: %s" selected-file)))))))
 
 
 
-(defun ml/org-add-periods-to-list-items (begin end)  
-  "Add periods to the end of all items in the selected org-mode list if missing.  
-It operates only in the selected region between BEGIN and END.  
+(defun ml/org-add-periods-to-list-items (begin end)
+  "Add periods to the end of all items in the selected org-mode list if missing.
+It operates only in the selected region between BEGIN and END.
 Preserves both checked and unchecked checkboxes and the initial dash.
-Suitable for preparing bullet lists for slides."  
-  (interactive "r")  
-  (save-excursion  
-    (save-restriction  
-      (narrow-to-region begin end)  
-      (goto-char (point-min))  
-      (while (re-search-forward "^\\([ \t]*-[ \t]+\\(?:\\[[ X]\\][ \t]+\\)?\\)\\([^.\n]+\\)\\([^.]\n\\|$\\)" nil t)  
-        (replace-match "\\1\\2." nil nil)))))  
+Suitable for preparing bullet lists for slides."
+  (interactive "r")
+  (save-excursion
+    (save-restriction
+      (narrow-to-region begin end)
+      (goto-char (point-min))
+      (while (re-search-forward "^\\([ \t]*-[ \t]+\\(?:\\[[ X]\\][ \t]+\\)?\\)\\([^.\n]+\\)\\([^.]\n\\|$\\)" nil t)
+        (replace-match "\\1\\2." nil nil)))))
 
 
 ;;; add-periods-to-list
-(defun ml/org-or-latex-add-periods-to-list ()  
+(defun ml/org-or-latex-add-periods-to-list ()
   "Add a period to the end of each line in the current list if missing.
 Designed to work in both org and latex files.
 This is a massive problem with lists in slideshows.
-The absence of periods will upset some audience members.  
-Works with:  
-- org-mode lists (-, *, numbers)  
-- org-mode checklists (- [ ], * [ ])  
-https://github.com/cursorless-everywhere/emacs-cursorless/issues- LaTeX \\item lists  
+The absence of periods will upset some audience members.
+Works with:
+- org-mode lists (-, *, numbers)
+- org-mode checklists (- [ ], * [ ])
+https://github.com/cursorless-everywhere/emacs-cursorless/issues- LaTeX \\item lists
 - LaTeX \\item checklists (\\item [ ])
 
 Usage: Place cursor anywhere in list. Enter M-x org-or-latex-add-periods-to-list or C-c p.
-Developed with the help of Claude 3.5 Sonnet."  
-  (interactive)  
-  (save-excursion  
-    (let ((list-end (save-excursion  
-                      (end-of-list)  
-                      (point))))  
-      (beginning-of-list)  
-      (while (< (point) list-end)  
-        (end-of-line)  
-        (when (and (not (looking-back "[.!?]\\|[.!?]\"\\|[.!?]''" (line-beginning-position)))  
-                   (not (looking-at-p "^\\s-*$")) ; Skip empty lines  
-                   (save-excursion  
-                     (beginning-of-line)  
-                     (looking-at-p "^\\s-*\\([-*]\\(?: \\[[ X-]\\]\\)?\\|[0-9]+[.)]\\|\\\\item\\(?: \\[[ X-]\\]\\)?\\)")))  
-          (insert "."))  
-        (forward-line)))))  
+Developed with the help of Claude 3.5 Sonnet."
+  (interactive)
+  (save-excursion
+    (let ((list-end (save-excursion
+                      (end-of-list)
+                      (point))))
+      (beginning-of-list)
+      (while (< (point) list-end)
+        (end-of-line)
+        (when (and (not (looking-back "[.!?]\\|[.!?]\"\\|[.!?]''" (line-beginning-position)))
+                   (not (looking-at-p "^\\s-*$")) ; Skip empty lines
+                   (save-excursion
+                     (beginning-of-line)
+                     (looking-at-p "^\\s-*\\([-*]\\(?: \\[[ X-]\\]\\)?\\|[0-9]+[.)]\\|\\\\item\\(?: \\[[ X-]\\]\\)?\\)")))
+          (insert "."))
+        (forward-line)))))
 (global-set-key (kbd "C-c p") 'org-or-latex-add-periods-to-list)
 
 
-(defun ml/beginning-of-list ()  
-  "Move to beginning of the current list.  
-Handles org-mode lists, checklists, and LaTeX lists."  
-  (while (and (not (bobp))  
-              (save-excursion  
-                (beginning-of-line)  
-                (looking-at-p "^\\s-*\\([-*]\\(?: \\[[ X-]\\]\\)?\\|[0-9]+[.)]\\|\\\\item\\(?: \\[[ X-]\\]\\)?\\)")))  
-    (forward-line -1))  
-  (forward-line 1))  
+(defun ml/beginning-of-list ()
+  "Move to beginning of the current list.
+Handles org-mode lists, checklists, and LaTeX lists."
+  (while (and (not (bobp))
+              (save-excursion
+                (beginning-of-line)
+                (looking-at-p "^\\s-*\\([-*]\\(?: \\[[ X-]\\]\\)?\\|[0-9]+[.)]\\|\\\\item\\(?: \\[[ X-]\\]\\)?\\)")))
+    (forward-line -1))
+  (forward-line 1))
 
 
-(defun ml/end-of-list ()  
-  "Move to end of the current list.  
-Handles org-mode lists, checklists, and LaTeX lists."  
-  (while (and (not (eobp))  
-              (save-excursion  
-                (beginning-of-line)  
-                (looking-at-p "^\\s-*\\([-*]\\(?: \\[[ X-]\\]\\)?\\|[0-9]+[.)]\\|\\\\item\\(?: \\[[ X-]\\]\\)?\\)")))  
+(defun ml/end-of-list ()
+  "Move to end of the current list.
+Handles org-mode lists, checklists, and LaTeX lists."
+  (while (and (not (eobp))
+              (save-excursion
+                (beginning-of-line)
+                (looking-at-p "^\\s-*\\([-*]\\(?: \\[[ X-]\\]\\)?\\|[0-9]+[.)]\\|\\\\item\\(?: \\[[ X-]\\]\\)?\\)")))
     (forward-line 1)))
 
 
@@ -155,103 +155,103 @@ Handles org-mode lists, checklists, and LaTeX lists."
 ;; The manual cutting and pasting for five categories per day or week can take a long time.
 ;; I know that org-agenda can do something like this.
 ;; I want more control.
-(defun ml/carry-forward-todos ()  
-"Carry forward undone TODOs and unchecked items to Next Week while preserving categories."  
-(interactive)  
-(save-excursion  
-  (let ((todos-to-move '())  
-        (current-level (org-outline-level))  
-        (category-order '()))  
-    
-    ;; Store the current week's position  
-    (let ((current-week-pos (point)))  
-      
-      ;; First, collect category order  
-      (org-map-entries  
-       (lambda ()  
-         (when (= (org-outline-level) (1+ current-level))  
-           (push (org-get-heading t t t t) category-order)))  
-       t 'tree)  
-      (setq category-order (reverse category-order))  
-      
-      ;; Collect TODOs and checklist items from each category  
-      (org-map-entries  
-       (lambda ()  
-         (when (= (org-outline-level) (1+ current-level))  
-           (let ((category (org-get-heading t t t t))  
-                 (end-of-subtree (save-excursion   
-                                 (org-end-of-subtree)  
-                                 (point))))  
-             ;; Collect TODOs  
-             (save-excursion  
-               (while (re-search-forward org-todo-regexp end-of-subtree t)  
-                 (let ((todo-state (match-string 1)))  
-                   (when (and todo-state  
-                            (not (member todo-state '("DONE" "CANCELLED" "SOMEDAY"))))  
-                     (push (cons category  
-                               (concat "   "  
-                                      (buffer-substring-no-properties  
-                                       (line-beginning-position)  
-                                       (1+ (line-end-position)))))  
-                           todos-to-move)))))  
-             ;; Collect unchecked boxes  
-             (save-excursion  
-               (goto-char (line-beginning-position))  
-               (while (re-search-forward "^\\([ \t]*\\)\\([-+*]\\) \\[ \\]" end-of-subtree t)  
-                 (let ((indent (match-string 1))  
-                       (bullet (match-string 2)))  
-                   (push (cons category  
-                             (concat "   " indent bullet " [ ] "  
-                                    (buffer-substring-no-properties  
-                                     (match-end 0)  
-                                     (line-end-position))  
-                                    "\n"))  
-                         todos-to-move)))))))  
-       t 'tree)  
-      
-      ;; Find or create Next Week heading  
-      (goto-char (point-min))  
-      (let ((next-week-marker (concat "^\\*\\{" (number-to-string current-level) "\\} Next Week")))  
-        (unless (re-search-forward next-week-marker nil t)  
-          (goto-char (point-max))  
-          (insert "\n" (make-string current-level ?*) " Next Week\n")))  
-      
-      ;; Insert collected items under appropriate categories  
-      (dolist (category category-order)  
-        (when (cl-remove-if-not  
-               (lambda (x) (string= (car x) category))  
-               todos-to-move)  
-          ;; Create or find category heading  
-          (let ((category-marker (concat "^\\*\\{" (number-to-string (1+ current-level)) "\\} "   
-                                       (regexp-quote category))))  
-            (unless (re-search-forward category-marker nil t)  
-              (insert "\n" (make-string (1+ current-level) ?*) " " category "\n"))  
-            ;; Insert todos for this category  
-            (dolist (todo (reverse (cl-remove-if-not  
-                                  (lambda (x) (string= (car x) category))  
-                                  todos-to-move)))  
-              (insert (cdr todo))))))  
-      
-      ;; Go back and mark original items as done  
-      (goto-char current-week-pos)  
-      (org-map-entries  
-       (lambda ()  
-         (when (org-entry-is-todo-p)  
-           (let ((todo-state (org-get-todo-state)))  
-             (when (and todo-state  
-                       (not (member todo-state '("DONE" "CANCELED"))))  
-               (org-todo "DONE")))))  
-       t 'tree)  
-      
-      ;; Mark all checkboxes as done  
-      (goto-char current-week-pos)  
-      (org-map-entries  
-       (lambda ()  
-         (save-excursion  
-           (while (re-search-forward "^[ \t]*[-+*] \\[ \\]"  
-                                   (save-excursion (outline-next-heading) (point))  
-                                   t)  
-             (replace-match "\\1[X]" nil nil))))  
+(defun ml/carry-forward-todos ()
+"Carry forward undone TODOs and unchecked items to Next Week while preserving categories."
+(interactive)
+(save-excursion
+  (let ((todos-to-move '())
+        (current-level (org-outline-level))
+        (category-order '()))
+
+    ;; Store the current week's position
+    (let ((current-week-pos (point)))
+
+      ;; First, collect category order
+      (org-map-entries
+       (lambda ()
+         (when (= (org-outline-level) (1+ current-level))
+           (push (org-get-heading t t t t) category-order)))
+       t 'tree)
+      (setq category-order (reverse category-order))
+
+      ;; Collect TODOs and checklist items from each category
+      (org-map-entries
+       (lambda ()
+         (when (= (org-outline-level) (1+ current-level))
+           (let ((category (org-get-heading t t t t))
+                 (end-of-subtree (save-excursion
+                                 (org-end-of-subtree)
+                                 (point))))
+             ;; Collect TODOs
+             (save-excursion
+               (while (re-search-forward org-todo-regexp end-of-subtree t)
+                 (let ((todo-state (match-string 1)))
+                   (when (and todo-state
+                            (not (member todo-state '("DONE" "CANCELLED" "SOMEDAY"))))
+                     (push (cons category
+                               (concat "   "
+                                      (buffer-substring-no-properties
+                                       (line-beginning-position)
+                                       (1+ (line-end-position)))))
+                           todos-to-move)))))
+             ;; Collect unchecked boxes
+             (save-excursion
+               (goto-char (line-beginning-position))
+               (while (re-search-forward "^\\([ \t]*\\)\\([-+*]\\) \\[ \\]" end-of-subtree t)
+                 (let ((indent (match-string 1))
+                       (bullet (match-string 2)))
+                   (push (cons category
+                             (concat "   " indent bullet " [ ] "
+                                    (buffer-substring-no-properties
+                                     (match-end 0)
+                                     (line-end-position))
+                                    "\n"))
+                         todos-to-move)))))))
+       t 'tree)
+
+      ;; Find or create Next Week heading
+      (goto-char (point-min))
+      (let ((next-week-marker (concat "^\\*\\{" (number-to-string current-level) "\\} Next Week")))
+        (unless (re-search-forward next-week-marker nil t)
+          (goto-char (point-max))
+          (insert "\n" (make-string current-level ?*) " Next Week\n")))
+
+      ;; Insert collected items under appropriate categories
+      (dolist (category category-order)
+        (when (cl-remove-if-not
+               (lambda (x) (string= (car x) category))
+               todos-to-move)
+          ;; Create or find category heading
+          (let ((category-marker (concat "^\\*\\{" (number-to-string (1+ current-level)) "\\} "
+                                       (regexp-quote category))))
+            (unless (re-search-forward category-marker nil t)
+              (insert "\n" (make-string (1+ current-level) ?*) " " category "\n"))
+            ;; Insert todos for this category
+            (dolist (todo (reverse (cl-remove-if-not
+                                  (lambda (x) (string= (car x) category))
+                                  todos-to-move)))
+              (insert (cdr todo))))))
+
+      ;; Go back and mark original items as done
+      (goto-char current-week-pos)
+      (org-map-entries
+       (lambda ()
+         (when (org-entry-is-todo-p)
+           (let ((todo-state (org-get-todo-state)))
+             (when (and todo-state
+                       (not (member todo-state '("DONE" "CANCELED"))))
+               (org-todo "DONE")))))
+       t 'tree)
+
+      ;; Mark all checkboxes as done
+      (goto-char current-week-pos)
+      (org-map-entries
+       (lambda ()
+         (save-excursion
+           (while (re-search-forward "^[ \t]*[-+*] \\[ \\]"
+                                   (save-excursion (outline-next-heading) (point))
+                                   t)
+             (replace-match "\\1[X]" nil nil))))
        t 'tree)))))
 (global-set-key (kbd "C-c f") 'ml/carry-forward-todos)
 
@@ -283,6 +283,26 @@ Prompts for a file path via minibuffer and includes a timestamp in a comment."
 (global-set-key (kbd "C-c P") 'org-insert-protocol-file)
 
 
+;;; lines in region to list in org
+(defun nl/lines-in-region-to-org-list (marker)
+  "Convert lines in region to an org list with specified MARKER (-, +, *)."
+  (interactive "sMarker (e.g. -, +, *): ")
+  (if (region-active-p)
+      (let ((begin (region-beginning))
+            (end (region-end))
+            (marker (concat marker " ")))
+        (save-excursion
+          (goto-char begin)
+          (beginning-of-line)
+          (while (and (<= (point) end)
+                      (not (eobp)))
+            (insert marker)
+            ;; Adjust the end position as we add text
+            (setq end (+ end (length marker)))
+            (forward-line 1))))
+    (message "No region selected")))
+
+
 ;;; region-to-itemized-list-in-org
 (defun ml/org-region-to-itemized-list ()
   "Convert the lines in a selected region into an itemized list."
@@ -295,7 +315,7 @@ Prompts for a file path via minibuffer and includes a timestamp in a comment."
       (goto-char start)
       (while (< (point) end)
         (setq lines (cons (buffer-substring (point) (progn (end-of-line) (point))) lines)))
-    (dolist (line lines)
+    (doloist (line lines)
       (setq str (concat str (format "- %s\n" line))))
     (delete-region start end)
     (insert str))))
@@ -319,19 +339,19 @@ Prompts for a file path via minibuffer and includes a timestamp in a comment."
     (message "No region selected")))
 
 
-(defun ml/org-convert-itemized-list-in-region-to-checklist ()  
-  "Convert an org-mode itemized list (starting with '-') to a checklist (starting with '- [ ]')."  
-  (interactive)  
-  (save-excursion  
-    (let ((count 0))  
-      ;; Go to beginning of buffer or narrow region  
-      (goto-char (if (use-region-p) (region-beginning) (point-min)))  
-      ;; Search and replace  
-      (while (re-search-forward "^[ \t]*\\(-\\) "   
-                               (if (use-region-p) (region-end) (point-max))   
-                               t)  
-        (replace-match "\\1 [ ] " t)  
-        (setq count (1+ count)))  
+(defun ml/org-convert-itemized-list-in-region-to-checklist ()
+  "Convert an org-mode itemized list (starting with '-') to a checklist (starting with '- [ ]')."
+  (interactive)
+  (save-excursion
+    (let ((count 0))
+      ;; Go to beginning of buffer or narrow region
+      (goto-char (if (use-region-p) (region-beginning) (point-min)))
+      ;; Search and replace
+      (while (re-search-forward "^[ \t]*\\(-\\) "
+                               (if (use-region-p) (region-end) (point-max))
+                               t)
+        (replace-match "\\1 [ ] " t)
+        (setq count (1+ count)))
       (message "Converted %d items to checklist" count))))
 
 
@@ -398,16 +418,16 @@ Requires an active region selection."
 
 
 ;;; region of csv list to latex
-(defun ml/latex-convert-csv-to-itemized-list (start end)  
-  "Convert a comma-separated list in the selected region to a LaTeX itemized list."  
-  (interactive "r")  
-  (let ((csv-text (buffer-substring-no-properties start end)))  
-    (delete-region start end)  
-    (insert "\\begin{itemize}\n")  
-    (dolist (item (split-string csv-text ","))  
-      (insert (format "  \\item %s\n" (string-trim item))))  
+(defun ml/latex-convert-csv-to-itemized-list (start end)
+  "Convert a comma-separated list in the selected region to a LaTeX itemized list."
+  (interactive "r")
+  (let ((csv-text (buffer-substring-no-properties start end)))
+    (delete-region start end)
+    (insert "\\begin{itemize}\n")
+    (dolist (item (split-string csv-text ","))
+      (insert (format "  \\item %s\n" (string-trim item))))
     (insert "\\end{itemize}\n")))
-    
+
 
 
 ;;; convert-init-el-to-init-org
@@ -467,37 +487,37 @@ Requires an active region selection."
 ;% Ceontert selected rows in CSV format into a org-tabl
 
 
-(defun ml/region-csv-to-org-table ()  
-  "Convert CSV data in region to org table format.  
-Assumes first row contains headers and uses commas as delimiters."  
-  (interactive)  
-  (if (not (region-active-p))  
-      (message "No region selected")  
-    (let* ((start (region-beginning))  
-           (end (region-end))  
-           (csv-text (buffer-substring-no-properties start end))  
-           (rows (split-string csv-text "\n" t))  
-           (header-row (car rows))  
-           (data-rows (cdr rows)))  
-      ;; Delete region content  
-      (delete-region start end)  
-      ;; Insert org table header  
-      (insert "|"   
-              (mapconcat (lambda (cell)  
-                          (string-trim cell))  
-                        (split-string header-row "," t)  
-                        "|")  
-              "|\n|-\n")  
-      ;; Insert data rows  
-      (dolist (row data-rows)  
-        (when (not (string-empty-p row))  
-          (insert "|"  
-                  (mapconcat (lambda (cell)  
-                             (string-trim cell))  
-                           (split-string row "," t)  
-                           "|")  
-                  "|\n")))  
-      ;; Align the table  
+(defun ml/region-csv-to-org-table ()
+  "Convert CSV data in region to org table format.
+Assumes first row contains headers and uses commas as delimiters."
+  (interactive)
+  (if (not (region-active-p))
+      (message "No region selected")
+    (let* ((start (region-beginning))
+           (end (region-end))
+           (csv-text (buffer-substring-no-properties start end))
+           (rows (split-string csv-text "\n" t))
+           (header-row (car rows))
+           (data-rows (cdr rows)))
+      ;; Delete region content
+      (delete-region start end)
+      ;; Insert org table header
+      (insert "|"
+              (mapconcat (lambda (cell)
+                          (string-trim cell))
+                        (split-string header-row "," t)
+                        "|")
+              "|\n|-\n")
+      ;; Insert data rows
+      (dolist (row data-rows)
+        (when (not (string-empty-p row))
+          (insert "|"
+                  (mapconcat (lambda (cell)
+                             (string-trim cell))
+                           (split-string row "," t)
+                           "|")
+                  "|\n")))
+      ;; Align the table
       (org-table-align))))
 
 
@@ -548,59 +568,59 @@ Assumes first row contains headers and uses commas as delimiters."
 
 
 ;;;## Convert CSV file into an org table. It will convert internal commas inside strings into pipes.
-(defun ml/csv2org (csv-file &optional caption)  
-  "Convert a CSV file to an Org-mode table.  
+(defun ml/csv2org (csv-file &optional caption)
+  "Convert a CSV file to an Org-mode table.
 
-Prompts for a CSV file and optionally a caption.  Creates a new  
-buffer containing the Org-mode table.  Does NOT handle CSV files with  
-quoted fields containing commas.  
+Prompts for a CSV file and optionally a caption.  Creates a new
+buffer containing the Org-mode table.  Does NOT handle CSV files with
+quoted fields containing commas.
 
-CSV-FILE: The path to the CSV file.  
-CAPTION: (Optional) A string to use as the table caption."  
-  (interactive "fCSV file: \nsCaption (optional): ")  
-  (let* ((output-buffer (generate-new-buffer (format "*%s-org*" (file-name-nondirectory csv-file))))  
-         (csv-data (with-temp-buffer  
-                     (insert-file-contents csv-file)  
-                     (split-string (buffer-string) "\n" t)))  
-         (header (pop csv-data))  ; Extract header and remove from csv-data  
-         (org-table-lines '()))  
+CSV-FILE: The path to the CSV file.
+CAPTION: (Optional) A string to use as the table caption."
+  (interactive "fCSV file: \nsCaption (optional): ")
+  (let* ((output-buffer (generate-new-buffer (format "*%s-org*" (file-name-nondirectory csv-file))))
+         (csv-data (with-temp-buffer
+                     (insert-file-contents csv-file)
+                     (split-string (buffer-string) "\n" t)))
+         (header (pop csv-data))  ; Extract header and remove from csv-data
+         (org-table-lines '()))
 
-    (when (and caption (not (string-empty-p caption)))  
-      (push (concat "#+CAPTION: " caption) org-table-lines))  
+    (when (and caption (not (string-empty-p caption)))
+      (push (concat "#+CAPTION: " caption) org-table-lines))
 
-    ;; Process header  
-    (push (concat "|" (mapconcat (lambda (field)  
-                                  (format " %s " (replace-regexp-in-string "^\"\\(.*\\)\"$" "\\1" field)))  
-                                (split-string header "," t)  
-                                "|") "|")  ; Add pipes correctly  
-          org-table-lines)  
+    ;; Process header
+    (push (concat "|" (mapconcat (lambda (field)
+                                  (format " %s " (replace-regexp-in-string "^\"\\(.*\\)\"$" "\\1" field)))
+                                (split-string header "," t)
+                                "|") "|")  ; Add pipes correctly
+          org-table-lines)
 
-    ;; Create separator line  
-    (push (concat "|" (mapconcat (lambda (field) (make-string (length field) ?-) )  
-                                (split-string header "," t)  
-                                "|") "|")  
-          org-table-lines)  
+    ;; Create separator line
+    (push (concat "|" (mapconcat (lambda (field) (make-string (length field) ?-) )
+                                (split-string header "," t)
+                                "|") "|")
+          org-table-lines)
 
-    ;; Process data rows  
-    (dolist (row csv-data)  
-      (push (concat "|" (mapconcat (lambda (field)  
-                                  (format " %s " (replace-regexp-in-string "^\"\\(.*\\)\"$" "\\1" field)))  
-                                (split-string row "," t nil)  
-                                "|") "|") ; Add pipes correctly  
-            org-table-lines))  
+    ;; Process data rows
+    (dolist (row csv-data)
+      (push (concat "|" (mapconcat (lambda (field)
+                                  (format " %s " (replace-regexp-in-string "^\"\\(.*\\)\"$" "\\1" field)))
+                                (split-string row "," t nil)
+                                "|") "|") ; Add pipes correctly
+            org-table-lines))
 
-    ;; Create bottom rule (same as separator)  
-      (push (concat "|" (mapconcat (lambda (field) (make-string (length field) ?-) )  
-                                (split-string header "," t)  
-                                "|") "|")  
-          org-table-lines)  
+    ;; Create bottom rule (same as separator)
+      (push (concat "|" (mapconcat (lambda (field) (make-string (length field) ?-) )
+                                (split-string header "," t)
+                                "|") "|")
+          org-table-lines)
 
-    ;; Insert into output buffer  
-    (with-current-buffer output-buffer  
-      (dolist (line (reverse org-table-lines))  
-        (insert (concat line "\n")))  
-      (org-mode) ; Switch to Org mode  
-      (goto-char (point-min))) ; Go to beginning of buffer  
+    ;; Insert into output buffer
+    (with-current-buffer output-buffer
+      (dolist (line (reverse org-table-lines))
+        (insert (concat line "\n")))
+      (org-mode) ; Switch to Org mode
+      (goto-char (point-min))) ; Go to beginning of buffer
 
     (switch-to-buffer output-buffer)))
 
@@ -608,7 +628,7 @@ CAPTION: (Optional) A string to use as the table caption."
 ;;; export-csv-to-quiz-table
 ;% Usage example:
 ;% (export-csv-to-qiterm "~/6233iterm/qiterm.csv" "~/6233iterm/qiterm.db" "qiterm")
-(with-eval-after-load 'sqlite 
+(with-eval-after-load 'sqlite
 (defun ml/export-csv-to-sqlite-table (csv-file db-file table-name)
   "Export selected rows from a CSV file to an SQLite database."
   (interactive "fCSV file: \nfSQLite DB file: \nsTable name: ")
@@ -634,46 +654,46 @@ CAPTION: (Optional) A string to use as the table caption."
 )
 
 
-;;; export-csv-to-matched-sqlite-table 
+;;; export-csv-to-matched-sqlite-table
 ;% Usage example:
 ;% (export-csv-to-matched-sqlite-table "~/6233iterm/qiterm.csv" "~/6233iterm/qiterm.db" "qiterm")
-(with-eval-after-load 'sqlite 
-(defun ml/export-csv-to-matched-sqlite-table  (csv-file db-file table-name)  
-  "Export selected rows from a CSV file to an SQLite database.  
-Automatically determines column count and validates against table structure."  
-  (interactive "fCSV file: \nfSQLite DB file: \nsTable name: ")  
-  (let* ((db (sqlite3-open db-file))  
-         ;; Get table column count from database  
-         (table-info (sqlite3-exec db (format "PRAGMA table_info(%s)" table-name)))  
-         (db-column-count (length table-info))  
-         ;; Read and process CSV  
-         (rows (with-temp-buffer  
-                (insert-file-contents csv-file)  
-                (split-string (buffer-string) "\n" t)))  
-         ;; Get CSV column count from first row  
-         (csv-column-count (length (split-string (car rows) ","))))  
+(with-eval-after-load 'sqlite
+(defun ml/export-csv-to-matched-sqlite-table  (csv-file db-file table-name)
+  "Export selected rows from a CSV file to an SQLite database.
+Automatically determines column count and validates against table structure."
+  (interactive "fCSV file: \nfSQLite DB file: \nsTable name: ")
+  (let* ((db (sqlite3-open db-file))
+         ;; Get table column count from database
+         (table-info (sqlite3-exec db (format "PRAGMA table_info(%s)" table-name)))
+         (db-column-count (length table-info))
+         ;; Read and process CSV
+         (rows (with-temp-buffer
+                (insert-file-contents csv-file)
+                (split-string (buffer-string) "\n" t)))
+         ;; Get CSV column count from first row
+         (csv-column-count (length (split-string (car rows) ","))))
 
-    ;; Validate column counts match  
-    (if (not (= csv-column-count db-column-count))  
-        (progn  
-          (sqlite3-close db)  
-          (error "Column count mismatch: CSV has %d columns, table has %d columns"  
-                 csv-column-count db-column-count))  
-  
-      ;; Process rows if validation passes  
-      (dolist (row rows)  
-        (let* ((values (split-string row ","))  
-               ;; Create placeholders for SQL query (?,?,?) based on column count  
-               (placeholders (mapconcat (lambda (_) "?")  
-                                      (make-list csv-column-count nil)  
-                                      ","))  
-               ;; Create SQL query with proper number of placeholders  
-               (query (format "INSERT INTO %s VALUES (%s)"   
-                            table-name placeholders)))  
-          ;; Execute the query with values  
-          (sqlite3-exec db query values)))  
-  
-      (sqlite3-close db)  
+    ;; Validate column counts match
+    (if (not (= csv-column-count db-column-count))
+        (progn
+          (sqlite3-close db)
+          (error "Column count mismatch: CSV has %d columns, table has %d columns"
+                 csv-column-count db-column-count))
+
+      ;; Process rows if validation passes
+      (dolist (row rows)
+        (let* ((values (split-string row ","))
+               ;; Create placeholders for SQL query (?,?,?) based on column count
+               (placeholders (mapconcat (lambda (_) "?")
+                                      (make-list csv-column-count nil)
+                                      ","))
+               ;; Create SQL query with proper number of placeholders
+               (query (format "INSERT INTO %s VALUES (%s)"
+                            table-name placeholders)))
+          ;; Execute the query with values
+          (sqlite3-exec db query values)))
+
+      (sqlite3-close db)
       (message "Data successfully appended to %s" table-name))))
 )
 
@@ -720,54 +740,54 @@ Automatically determines column count and validates against table structure."
 
 ;;; get-citekeys-from-bibtex-file
 ;% used to work with annotated bibliography. Returns a list under the cursor in the current buffer.
-(defun ml/get-citekeys-from-bibtex-file ()  
-  "Prompt for a BibTeX filename in the minibuffer, extract citekeys, and insert an alphabetized itemized list into the current buffer at the cursor position."  
-  (interactive)  
-  (let* ((filename (read-file-name "BibTeX file: ")) ;; Prompt for the BibTeX file  
-         (citekeys '())) ;; Initialize an empty list to store citekeys  
-    (if (not (file-exists-p filename))  
-        (message "File does not exist: %s" filename)  
-      ;; Process the BibTeX file  
-      (with-temp-buffer  
-        (insert-file-contents filename) ;; Read the contents of the file into the buffer  
-        (goto-char (point-min)) ;; Move to the beginning of the buffer  
-        ;; Search for BibTeX entry keys (e.g., @article{citekey, ...)  
-        (while (re-search-forward "@\\w+{\\([^,]+\\)," nil t)  
-          (let ((citekey (match-string 1))) ;; Extract the citekey from the match  
-            (push citekey citekeys))) ;; Add the citekey to the list  
-        ;; Sort the citekeys alphabetically  
-        (setq citekeys (sort citekeys #'string<))))  
-    ;; Insert the formatted list into the current buffer  
-    (let ((formatted-citekeys  
-           (mapconcat (lambda (key) (concat " " key)) citekeys "\n")))  
+(defun ml/get-citekeys-from-bibtex-file ()
+  "Prompt for a BibTeX filename in the minibuffer, extract citekeys, and insert an alphabetized itemized list into the current buffer at the cursor position."
+  (interactive)
+  (let* ((filename (read-file-name "BibTeX file: ")) ;; Prompt for the BibTeX file
+         (citekeys '())) ;; Initialize an empty list to store citekeys
+    (if (not (file-exists-p filename))
+        (message "File does not exist: %s" filename)
+      ;; Process the BibTeX file
+      (with-temp-buffer
+        (insert-file-contents filename) ;; Read the contents of the file into the buffer
+        (goto-char (point-min)) ;; Move to the beginning of the buffer
+        ;; Search for BibTeX entry keys (e.g., @article{citekey, ...)
+        (while (re-search-forward "@\\w+{\\([^,]+\\)," nil t)
+          (let ((citekey (match-string 1))) ;; Extract the citekey from the match
+            (push citekey citekeys))) ;; Add the citekey to the list
+        ;; Sort the citekeys alphabetically
+        (setq citekeys (sort citekeys #'string<))))
+    ;; Insert the formatted list into the current buffer
+    (let ((formatted-citekeys
+           (mapconcat (lambda (key) (concat " " key)) citekeys "\n")))
       (insert formatted-citekeys "\n"))))
 
 
 ;;; wrap-citekey-and-create-tex-file
 ;% Used to convert a citekey into a section heading.
-(defun ml/wrap-citekey-and-create-tex-file ()  
-  "Replace the citekey under the cursor with LaTeX-wrapped text, create a corresponding .tex file, and open it in a new buffer."  
-  (interactive)  
-  (let* ((citekey (thing-at-point 'word t)) ;; Get the citekey under the cursor  
-         (tex-file-dir "/Users/blaine/abibNotes/") ;; Directory for the .tex file  
-         (tex-file-path (concat tex-file-dir citekey ".tex")) ;; Full path for the .tex file  
-         (wrapped-text (format "\\subsection*{\\bibentry{%s}}\n\\Addcontentsline{toc}{subsection}{%s}\n\\input{%s}"  
-                               citekey citekey tex-file-path))) ;; LaTeX-wrapped text  
-    (if (not citekey)  
-        (message "No citekey found under the cursor.")  
-      (progn  
-        ;; Delete the citekey under the cursor  
-        (let ((bounds (bounds-of-thing-at-point 'word)))  
-          (delete-region (car bounds) (cdr bounds)))  
-        ;; Insert the wrapped text in its place  
-        (insert wrapped-text)  
-        ;; Create the .tex file if it doesn't already exist  
-        (if (file-exists-p tex-file-path)  
-            (message "File %s already exists." tex-file-path)  
-          (with-temp-file tex-file-path  
-            (insert (format "%% This is the .tex file for citekey: %s\n" citekey))))  
-        ;; Open the .tex file in a new buffer  
-        (find-file tex-file-path)  
+(defun ml/wrap-citekey-and-create-tex-file ()
+  "Replace the citekey under the cursor with LaTeX-wrapped text, create a corresponding .tex file, and open it in a new buffer."
+  (interactive)
+  (let* ((citekey (thing-at-point 'word t)) ;; Get the citekey under the cursor
+         (tex-file-dir "/Users/blaine/abibNotes/") ;; Directory for the .tex file
+         (tex-file-path (concat tex-file-dir citekey ".tex")) ;; Full path for the .tex file
+         (wrapped-text (format "\\subsection*{\\bibentry{%s}}\n\\Addcontentsline{toc}{subsection}{%s}\n\\input{%s}"
+                               citekey citekey tex-file-path))) ;; LaTeX-wrapped text
+    (if (not citekey)
+        (message "No citekey found under the cursor.")
+      (progn
+        ;; Delete the citekey under the cursor
+        (let ((bounds (bounds-of-thing-at-point 'word)))
+          (delete-region (car bounds) (cdr bounds)))
+        ;; Insert the wrapped text in its place
+        (insert wrapped-text)
+        ;; Create the .tex file if it doesn't already exist
+        (if (file-exists-p tex-file-path)
+            (message "File %s already exists." tex-file-path)
+          (with-temp-file tex-file-path
+            (insert (format "%% This is the .tex file for citekey: %s\n" citekey))))
+        ;; Open the .tex file in a new buffer
+        (find-file tex-file-path)
         (message "Replaced citekey, created .tex file, and opened it: %s" tex-file-path)))))
 
 
@@ -785,7 +805,7 @@ Automatically determines column count and validates against table structure."
 
 
 ;;; launch-ithoughtsx
-;% This is the best mind mapping software that I have encountered. 
+;% This is the best mind mapping software that I have encountered.
 ;% Probably better to make a bash alias to avoid tying up keybindings.
 (defun ml/launch-ithoughtsx ()
   "Launch iThoughtsX application."
@@ -859,8 +879,8 @@ The regular expression ^\\*\\* .*:%s: is used to search for second-level headlin
     (if (re-search-forward (format "^\\*\\*\\* .*:%s:" tag) nil t)
         (org-end-of-subtree)
       (message "Tag not found"))))
-      
-      
+
+
 (defun ml/org-append-todo-to-tagged-fourth-level-headline (new-todo &optional tag)
   "Append a new TODO item to the bottom of the TODO list under a 3rd level headline marked by TAG.
 If TAG is not provided, it defaults to the :appendtodos: tag. This is for the writingLog.org file.
@@ -952,30 +972,30 @@ point relative to the headline with the tag."
 
 ;;; Split long lines into one line per sentence.
 ;% The function is priceless when working with transripts from whisper-file.
-(defun ml/split-sentences-into-lines (start end)  
-  "Move each sentence in the region to its own line, ignoring common titles and abbreviations."  
-  (interactive "r")  
-  (save-excursion  
-    (goto-char start)  
-    ;; First, temporarily mark abbreviations  
-    (let ((case-fold-search nil))  ; make search case-sensitive  
-      ;; Mark abbreviations with a special character (¶)  
-      (goto-char start)  
-      (while (re-search-forward "\\(Dr\\|Drs\\|Mr\\|Mrs\\|Ph\\.D\\|M\\.S\\)\\." end t)  
-        (replace-match "\\1¶"))  
-      
-      ;; Now split on actual sentence endings  
-      (goto-char start)  
-      (while (re-search-forward "\\([.!?]\\)\\s-+" end t)  
-        (replace-match "\\1\n"))  
-      
-      ;; Restore the original periods in abbreviations  
-      (goto-char start)  
-      (while (re-search-forward "¶" end t)  
-        (replace-match ".")))))  
+(defun ml/split-sentences-into-lines (start end)
+  "Move each sentence in the region to its own line, ignoring common titles and abbreviations."
+  (interactive "r")
+  (save-excursion
+    (goto-char start)
+    ;; First, temporarily mark abbreviations
+    (let ((case-fold-search nil))  ; make search case-sensitive
+      ;; Mark abbreviations with a special character (¶)
+      (goto-char start)
+      (while (re-search-forward "\\(Dr\\|Drs\\|Mr\\|Mrs\\|Ph\\.D\\|M\\.S\\)\\." end t)
+        (replace-match "\\1¶"))
 
-;; Bind the function to a key combination  
-(global-set-key (kbd "C-c s") 'ml/split-sentences-into-lines)  
+      ;; Now split on actual sentence endings
+      (goto-char start)
+      (while (re-search-forward "\\([.!?]\\)\\s-+" end t)
+        (replace-match "\\1\n"))
+
+      ;; Restore the original periods in abbreviations
+      (goto-char start)
+      (while (re-search-forward "¶" end t)
+        (replace-match ".")))))
+
+;; Bind the function to a key combination
+(global-set-key (kbd "C-c s") 'ml/split-sentences-into-lines)
 
 
 ;; ;;; widen-frame to the right. Enter period have first issue.
