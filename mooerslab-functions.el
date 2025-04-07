@@ -82,7 +82,6 @@ Customize the path to your init.el file."
             (message "Added to org-agenda-files and init.el: %s" selected-file)))))))
 
 
-
 (defun ml/org-add-periods-to-list-items (begin end)
   "Add periods to the end of all items in the selected org-mode list if missing.
 It operates only in the selected region between BEGIN and END.
@@ -321,6 +320,79 @@ Prompts for a file path via minibuffer and includes a timestamp in a comment."
     (insert str))))
 (global-set-key (kbd "C-c l") 'region-to-itemized-list)
 
+
+(defun ml/md-to-org-region (start end)
+  "Convert markdown in region between START and END to org-mode format.
+Uses direct pandoc conversion and carefully removes blank lines between list items."
+  (interactive "r")
+  (unless (executable-find "pandoc")
+    (user-error "Pandoc not found. Please install pandoc first"))
+
+  (let ((orig-content (buffer-substring-no-properties start end)))
+    ;; Convert using pandoc
+    (let ((org-content
+           (with-temp-buffer
+             (insert orig-content)
+             (if (zerop (call-process-region (point-min) (point-max)
+                                           "pandoc" t t nil
+                                           "-f" "markdown"
+                                           "-t" "org"
+                                           "--wrap=preserve"))
+                 (buffer-string)
+               (message "Pandoc conversion failed")
+               nil))))
+
+      (if org-content
+          (progn
+            ;; Replace the region with org content
+            (delete-region start end)
+            (goto-char start)
+            (insert org-content)
+
+            ;; Remove blank lines between list items
+            (save-excursion
+              ;; Mark the end of our working region
+              (let ((end-marker (+ start (length org-content))))
+                (goto-char start)
+
+                ;; Iterate through the buffer
+                (while (< (point) end-marker)
+                  (if (looking-at "^\\([ \t]*\\)\\([-*+]\\|[0-9]+\\.\\)\\s-+")
+                      (let ((indent-level (length (match-string 1)))
+                            (list-type (if (member (match-string 2) '("-" "+" "*"))
+                                          'unordered
+                                        'ordered))
+                            (current-line-start (point)))
+
+                        ;; Move to the next line
+                        (forward-line 1)
+
+                        ;; Check if next line is blank followed by another list item of same type/level
+                        (when (and (looking-at "^\\s-*$")
+                                   (save-excursion
+                                     (forward-line 1)
+                                     (when (looking-at "^\\([ \t]*\\)\\([-*+]\\|[0-9]+\\.\\)\\s-+")
+                                       (and
+                                        ;; Same indent level
+                                        (= (length (match-string 1)) indent-level)
+                                        ;; Same list type
+                                        (eq list-type (if (member (match-string 2) '("-" "+" "*"))
+                                                        'unordered
+                                                      'ordered))))))
+                          ;; Delete the blank line
+                          (delete-region (point) (progn (forward-line 1) (point)))
+                          ;; Move back to check this list item again
+                          (goto-char current-line-start)))
+                    ;; Not a list item, just move to next line
+                    (forward-line 1)))))
+
+            (message "Markdown converted to org-mode successfully"))
+
+        ;; Restore original on failure
+        (message "Failed to convert markdown to org")
+        (delete-region start end)
+        (goto-char start)
+        (insert orig-content)))))
 
 ;;; region-to-todos-in-org
 (defun ml/org-convert-region-to-fourth-level-todos ()
@@ -945,6 +1017,13 @@ point relative to the headline with the tag."
   "Open the init.el file for editing. Edit the path to suit your needs."
   (interactive)
   (find-file "~/e30fewpackages/init.el"))
+
+
+;;; Open the init.el file for editing.
+(defun ml/open-mooerslab-functions ()
+  "Open the init.el file for editing. Edit the path to suit your needs."
+  (interactive)
+  (find-file "~/6112MooersLabGitHubLabRepos/mooerslab-functions-el/mooerslab-functions.el"))
 
 
 ;;; Reload the my-hydras file after editing it in Emacs.
