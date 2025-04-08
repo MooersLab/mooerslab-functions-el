@@ -321,6 +321,31 @@ Prompts for a file path via minibuffer and includes a timestamp in a comment."
 (global-set-key (kbd "C-c l") 'region-to-itemized-list)
 
 
+
+(defun ml/org-convert-list-in-region-to-checkboxes (start end)  
+  "Convert a dash/hyphen bullet list to org-mode checkboxes in region from START to END."  
+  (interactive "r")  
+  (save-excursion  
+    (narrow-to-region start end)  
+    (goto-char (point-min))  
+    (while (re-search-forward "^\\s-*-\\s-+" nil t)  
+      (replace-match "- [ ] " t nil))  
+    (widen)))
+
+
+(defun ml/org-convert-checkboxes-in-region-to-list (start end)  
+  "Convert org-mode checkboxes to a regular dash/hyphen bullet list in region from START to END."  
+  (interactive "r")  
+  (save-excursion  
+    (narrow-to-region start end)  
+    (goto-char (point-min))  
+    ;; Match checkbox patterns like "- [ ]", "- [X]", "- [x]" with any whitespace  
+    (while (re-search-forward "^\\(\\s-*\\)- \\[[xX ]\\]\\s-+" nil t)  
+      (let ((indent (match-string 1)))  
+        (replace-match (concat indent "- ") t nil)))  
+    (widen)))  
+
+
 (defun ml/md-to-org-region (start end)
   "Convert markdown in region between START and END to org-mode format.
 Uses direct pandoc conversion and carefully removes blank lines between list items."
