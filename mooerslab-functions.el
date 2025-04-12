@@ -321,6 +321,19 @@ Prompts for a file path via minibuffer and includes a timestamp in a comment."
 (global-set-key (kbd "C-c l") 'region-to-itemized-list)
 
 
+(defun ml/org-convert-unordered-to-ordered-list (start end)  
+  "Convert unnumbered list items to numbered list items in the marked region."  
+  (interactive "r")  
+  (save-excursion  
+    (save-restriction  
+      (narrow-to-region start end)  
+      (goto-char (point-min))  
+      (let ((counter 1))  
+        (while (re-search-forward "^\\([ \t]*\\)\\(-\\|+\\|\\*\\)\\([ \t]+\\)" nil t)  
+          (replace-match (format "\\1%d.\\3" counter) t)  
+          (setq counter (1+ counter)))))))
+
+(global-set-key (kbd "C-c C-x n") 'ml/org-convert-unordered-to-ordered-list)  
 
 (defun ml/org-convert-list-in-region-to-checkboxes (start end)  
   "Convert a dash/hyphen bullet list to org-mode checkboxes in region from START to END."  
