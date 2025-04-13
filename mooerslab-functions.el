@@ -359,6 +359,16 @@ Prompts for a file path via minibuffer and includes a timestamp in a comment."
     (widen)))  
 
 
+(defun ml/remove-blank-lines-in-region (start end)
+  "Remove all blank lines in the region between START and END."
+  (interactive "r")
+  (save-excursion
+    (save-restriction
+      (narrow-to-region start end)
+      (goto-char (point-min))
+      (flush-lines "^$"))))
+
+
 (defun ml/md-to-latex-region (start end)  
   "Convert markdown in region between START and END to LaTeX format.  
 Uses direct pandoc conversion and carefully handles formatting issues."  
