@@ -359,6 +359,70 @@ Prompts for a file path via minibuffer and includes a timestamp in a comment."
     (widen)))  
 
 
+(defun ml/md-to-latex-region (start end)  
+  "Convert markdown in region between START and END to LaTeX format.  
+Uses direct pandoc conversion and carefully handles formatting issues."  
+  (interactive "r")  
+  (unless (executable-find "pandoc")  
+    (user-error "Pandoc not found. Please install pandoc first"))  
+
+  (let ((orig-content (buffer-substring-no-properties start end)))  
+    ;; Convert using pandoc  
+    (let ((latex-content  
+           (with-temp-buffer  
+             (insert orig-content)  
+             (if (zerop (call-process-region (point-min) (point-max)  
+                                           "pandoc" t t nil  
+                                           "-f" "markdown"  
+                                           "-t" "latex"  
+                                           "--wrap=preserve"))  
+                 (buffer-string)  
+               (message "Pandoc conversion failed")  
+               nil))))  
+
+      (if latex-content  
+          (progn  
+            ;; Replace the region with LaTeX content  
+            (delete-region start end)  
+            (goto-char start)  
+            (insert latex-content)  
+
+            ;; Clean up common LaTeX formatting issues  
+            (save-excursion  
+              ;; Mark the end of our working region  
+              (let ((end-marker (+ start (length latex-content))))  
+                (goto-char start)  
+
+                ;; Iterate through the buffer  
+                (while (< (point) end-marker)  
+                  ;; Handle itemize and enumerate environments  
+                  (if (looking-at "\\\\begin{\\(itemize\\|enumerate\\)}")   
+                      (let ((env-type (match-string 1))  
+                            (current-env-start (point)))  
+                
+                        ;; Find the matching end of environment  
+                        (if (re-search-forward (format "\\\\end{%s}" env-type) end-marker t)  
+                            (progn  
+                              ;; Clean up double spacing in list environments  
+                              (goto-char current-env-start)  
+                              (while (and (< (point) end-marker)  
+                                          (re-search-forward "\n\n\\\\item" end-marker t))  
+                                (replace-match "\n\\\\item" nil nil))  
+                              ;; Move to end of this environment  
+                              (re-search-forward (format "\\\\end{%s}" env-type) end-marker t))  
+                          (goto-char end-marker)))  
+                    ;; Not in a list environment, just move to next line  
+                    (forward-line 1)))))  
+
+            (message "Markdown converted to LaTeX successfully"))  
+
+        ;; Restore original on failure  
+        (message "Failed to convert markdown to LaTeX")  
+        (delete-region start end)  
+        (goto-char start)  
+        (insert orig-content)))))  
+
+
 (defun ml/md-to-org-region (start end)
   "Convert markdown in region between START and END to org-mode format.
 Uses direct pandoc conversion and carefully removes blank lines between list items."
