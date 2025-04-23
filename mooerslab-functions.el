@@ -922,6 +922,86 @@ Automatically determines column count and validates against table structure."
     (setq ffap-file-at-point-line-number nil)))
 
 
+
+;; M-x ml/generate-tar-commands-with-chain after making a selection of a list of file paths to
+;; generate the tar commands to tar the folders in the current directory from which the 
+;; tar command is issue. This is very helpful when the harddrive is full or read-only.
+(defun ml/generate-tar-commands (start end)
+  "Generate tar commands for a list of paths.
+   Each path's last component becomes the name of the tar file.
+   START and END define the region containing the paths (one per line).
+   If no region is active, operate on the entire buffer."
+  (interactive "r")
+  (unless (region-active-p)
+    (setq start (point-min))
+    (setq end (point-max)))
+
+  (save-excursion
+    (save-restriction
+      (narrow-to-region start end)
+      (goto-char (point-min))
+      (let ((result ""))
+        (while (not (eobp))
+          (let* ((line (buffer-substring (line-beginning-position) (line-end-position)))
+                 (path (string-trim line))
+                 (path-without-trailing-slash (replace-regexp-in-string "/$" "" path)))
+
+            (when (not (string= path ""))
+              (let* ((dir-name (file-name-nondirectory path-without-trailing-slash))
+                     (parent-dir (file-name-directory path-without-trailing-slash))
+                     (tar-name (concat dir-name ".tar"))
+                     (tar-command (format "tar cvf %s -C %s %s .\n"
+                                         tar-name
+                                         parent-dir
+                                         dir-name)))
+                (setq result (concat result tar-command)))))
+
+          (forward-line 1))
+
+        (delete-region (point-min) (point-max))
+        (insert result)))))
+
+(defun ml/generate-tar-commands-with-chain (start end)
+  "Generate tar commands for a list of paths with && between commands.
+   Each path's last component becomes the name of the tar file.
+   START and END define the region containing the paths (one per line).
+   If no region is active, operate on the entire buffer."
+  (interactive "r")
+  (unless (region-active-p)
+    (setq start (point-min))
+    (setq end (point-max)))
+
+  (save-excursion
+    (save-restriction
+      (narrow-to-region start end)
+      (goto-char (point-min))
+      (let ((result ""))
+        (while (not (eobp))
+          (let* ((line (buffer-substring (line-beginning-position) (line-end-position)))
+                 (path (string-trim line))
+                 (path-without-trailing-slash (replace-regexp-in-string "/$" "" path)))
+
+            (when (not (string= path ""))
+              (let* ((dir-name (file-name-nondirectory path-without-trailing-slash))
+                     (parent-dir (file-name-directory path-without-trailing-slash))
+                     (tar-name (concat dir-name ".tar"))
+                     (is-last-line (save-excursion
+                                     (forward-line 1)
+                                     (eobp)))
+                     (chain (if is-last-line "" " &&"))
+                     (tar-command (format "tar cvf %s -C %s %s .%s\n"
+                                         tar-name
+                                         parent-dir
+                                         dir-name
+                                         chain)))
+                    (setq result (concat result tar-command)))))
+
+              (forward-line 1))
+
+            (delete-region (point-min) (point-max))
+            (insert result)))))
+
+
 ;;; get-citekeys-from-bibtex-file
 ;% used to work with annotated bibliography. Returns a list under the cursor in the current buffer.
 (defun ml/get-citekeys-from-bibtex-file ()
@@ -1189,6 +1269,34 @@ point relative to the headline with the tag."
 (global-set-key (kbd "C-c s") 'ml/split-sentences-into-lines)
 
 
+
+; (defun ml/org-unordered-list-to-latex-itemized-list ()
+;   "Convert org-mode unordered list at point to LaTeX itemized list."
+; Busted due to beg in org-mode
+;   (interactive)
+;   (save-excursion
+;     (let ((beg (save-excursion
+;                  (if (org-at-item-p)
+;                      (progn (org-beginning-of-item-list) (point))
+;                    (error "Not at an item"))))
+;           (end (save-excursion
+;                  (if (org-at-item-p)
+;                      (progn (org-end-of-item-list) (point))
+;                    (error "Not at an item"))))
+;           (case-fold-search t))
+;       (narrow-to-region beg end)
+;       (goto-char (point-min))
+;       ;; Insert \begin{itemize}
+;       (insert "\\begin{itemize}\n")
+;       ;; Convert each list item
+;       (while (re-search-forward "^[ \t]*\\([-+*]\\)[ \t]+" nil t)
+;         (replace-match "  \\\\item " t nil))
+;       ;; Insert \end{itemize}
+;       (goto-char (point-max))
+;       (insert "\\end{itemize}\n")
+;       (widen))))
+          
+          
 ;; ;;; widen-frame to the right. Enter period have first issue.
 ;; ;% Redundant with built-in commands.
 ;; (defun ml/widen-frame ()
