@@ -282,6 +282,8 @@ Prompts for a file path via minibuffer and includes a timestamp in a comment."
 (global-set-key (kbd "C-c P") 'org-insert-protocol-file)
 
 
+
+
 ;;; lines in region to list in org
 (defun nl/lines-in-region-to-org-list (marker)
   "Convert lines in region to an org list with specified MARKER (-, +, *)."
@@ -357,6 +359,31 @@ Prompts for a file path via minibuffer and includes a timestamp in a comment."
       (let ((indent (match-string 1)))  
         (replace-match (concat indent "- ") t nil)))  
     (widen)))  
+
+
+(defun ml/org-markmap-region (start end)
+  "Export selected org region to a mindmap using markmap.
+Requires markmap-cli (npm install -g markmap-cli)."
+  (interactive "r")
+  (let* ((org-content (buffer-substring-no-properties start end))
+         (tmp-org (make-temp-file "org-markmap" nil ".org"))
+         (tmp-md (make-temp-file "org-markmap" nil ".md"))
+         (tmp-html (make-temp-file "org-markmap" nil ".html")))
+    (with-temp-file tmp-org
+      (insert org-content))
+    ;; Export org to markdown
+    (let ((org-export-show-temporary-export-buffer nil))
+      (with-temp-buffer
+        (insert org-content)
+        (org-mode)
+        (org-export-to-file 'md tmp-md nil nil nil nil nil)))
+    ;; Run markmap-cli to generate HTML
+    (let ((cmd (format "markmap %s -o %s" (shell-quote-argument tmp-md) (shell-quote-argument tmp-html))))
+      (shell-command cmd))
+    ;; Open in default browser
+    (browse-url (concat "file://" tmp-html))
+    (message "Markmap mindmap generated and opened in browser.")))
+(global-set-key (kbd "C-x C-m") 'ml/org-markmap-region)
 
 
 (defun ml/remove-blank-lines-in-region (start end)
