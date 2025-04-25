@@ -460,6 +460,63 @@ Uses direct pandoc conversion and carefully handles formatting issues."
         (insert orig-content)))))  
 
 
+
+(defun ml/org-convert-lines-to-org-checklist (beg end)  
+  "Convert lines in region to org-mode checklist items.  
+Preserves existing checkboxes, indentation, and empty lines.  
+If no region is active, operate on the current buffer."  
+  (interactive (if (use-region-p)  
+                   (list (region-beginning) (region-end))  
+                 (list (point-min) (point-max))))  
+
+  (let ((lines (split-string (buffer-substring-no-properties beg end) "\n"))  
+        (result ""))  
+
+    (dolist (line lines)  
+      (cond  
+       ;; Empty line - keep as is  
+       ((string-match-p "^\\s-*$" line)  
+        (setq result (concat result line "\n")))  
+
+       ;; Already has a proper checkbox  
+       ((string-match-p "^\\(\\s-*\\)-\\s-*\\[[ xX-]\\]\\s-+" line)  
+        (setq result (concat result line "\n")))  
+
+       ;; Already a list item (dash) without checkbox  
+       ((string-match "^\\(\\s-*\\)-\\s-+\\(.*\\)$" line)  
+        (let ((indent (match-string 1 line))  
+              (content (match-string 2 line)))  
+          (setq result (concat result indent "- [ ] " content "\n"))))  
+
+       ;; Regular line with possible indentation  
+       ((string-match "^\\(\\s-*\\)\\(.*\\)$" line)  
+        (let ((indent (match-string 1 line))  
+              (content (match-string 2 line)))  
+          (when (not (string-empty-p content))  
+            (setq result (concat result indent "- [ ] " content "\n")))))))  
+
+    (delete-region beg end)  
+    (insert result)))  
+
+
+(defun ml/string-to-org-checklist (text)  
+  "Convert string TEXT to org-mode checklist format.  
+Preserves existing checkboxes, indentation, and empty lines."  
+  (with-temp-buffer  
+    (insert text)  
+    (convert-to-org-checklist (point-min) (point-max))  
+    (buffer-string)))  
+
+
+(defun ml/org-checklist-from-kill-ring ()  
+  "Convert the latest kill-ring entry to org checklist format and put it back in the kill ring."  
+  (interactive)  
+  (when kill-ring  
+    (let ((converted (string-to-org-checklist (car kill-ring))))  
+      (kill-new converted)  
+      (message "Converted text to org checklist and placed in kill ring"))))  
+
+
 (defun ml/md-to-org-region (start end)
   "Convert markdown in region between START and END to org-mode format.
 Uses direct pandoc conversion and carefully removes blank lines between list items."
