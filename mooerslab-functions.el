@@ -361,6 +361,20 @@ Prompts for a file path via minibuffer and includes a timestamp in a comment."
     (widen)))  
 
 
+(defun ml/open-file-in-textmate ()
+  "Open the current file or `dired' marked files in TextMate.
+   This command is for macOS only. Modified from 
+   URL `http://xahlee.info/emacs/emacs/emacs_open_in_textedit.html'
+   Version: 2017-11-21 2021-02-07 2023-06-26"
+  (interactive)
+  (when (not (eq system-type 'darwin)) (user-error "Error: TextMate only run in Mac"))
+  (let* (
+         (xFList (if (eq major-mode 'dired-mode) (dired-get-marked-files) (list buffer-file-name)))
+         (xDoIt (if (<= (length xFList) 10) t (y-or-n-p "Open more than 10 files? "))))
+    (when xDoIt
+      (mapc (lambda (x) (shell-command (format "open -a TextMate.app \"%s\"" x))) xFList))))
+
+
 (defun ml/org-markmap-region (start end)
   "Export selected org region to a mindmap using markmap.
 Requires markmap-cli (npm install -g markmap-cli)."
