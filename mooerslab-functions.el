@@ -12,6 +12,19 @@
 
 ;;; This package is known to work (insofar as it's tested) with Emacs 30.1.
 
+
+(defun ml/convert-org-checklist-to-dash-list (begin end)  
+  "Convert org-mode checklist items to simple dash list items in the selected region.  
+BEGIN and END define the boundaries of the region. Generated with Claude 3.7 Sonnet May 7, 2025."  
+  (interactive "r")  ; "r" means the function takes region as input  
+  (save-excursion  
+    (save-restriction  
+      (narrow-to-region begin end)  ; Narrow to the selected region  
+      (goto-char (point-min))  
+      (while (re-search-forward "^\\(\\s-*\\)- \\[[ X]\\] " nil t)  
+        (replace-match "\\1- " t)))))  
+
+
 ;% This function eases adding log files to the list of files for org-agenda to search for to-dos.
 ;% Another example of spending an hour to save a minute!
 (defun ml/append-log-to-org-agenda-files ()
