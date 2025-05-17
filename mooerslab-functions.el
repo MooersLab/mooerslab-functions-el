@@ -180,11 +180,23 @@ This is very useful during the preparation of grant progress reports and bibtex 
   (let ((author (read-string "Author (Last, First): ")))
     (insert "\\index[authors]{" author "}")))
 
+(defun mooerslab-insert-prompt-index-entry ()
+  "Insert an writing prompt index entry"
+  (interactive)
+  (let ((prompt (read-string "Writing prompt: ")))
+    (insert "\\index[prompt]{" prompt "}")))
+
+
+
 (eval-after-load 'org-mode
       '(define-key org-mode-map (kbd "C-c w a") 'insert-author-index-entry))
       
 (eval-after-load 'org-mode
         '(define-key org-mode-map (kbd "C-c w m") 'insert-main-index-entry))
+
+(eval-after-load 'org-mode
+        '(define-key org-mode-map (kbd "C-c w p") 'insert-prompt-index-entry))
+
 
 (eval-after-load 'tex-mode
       '(define-key Latex-mode-map (kbd "C-c w a") 'insert-author-index-entry))
@@ -192,6 +204,8 @@ This is very useful during the preparation of grant progress reports and bibtex 
 (eval-after-load 'tex-mode
        '(define-key Latex-mode-map (kbd "C-c w m") 'insert-main-index-entry))
 
+(eval-after-load 'tex-mode
+       '(define-key Latex-mode-map (kbd "C-c w p") 'insert-main-index-entry))
 
 (defun mooerslab-wrap-citar-citekey-and-create-abibnote-org ()
     "Replace the citekey under the cursor with LaTeX-wrapped text and create a 
