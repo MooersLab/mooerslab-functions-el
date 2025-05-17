@@ -13,7 +13,68 @@
 ;;; This package is known to work (insofar as it's tested) with Emacs 30.1.
 
 
-;;; works imakeidx package in org-mode. Could work in Autex too.
+(defun ml/format-authors-in-region (begin end)
+  "Format author names in region from 'First M.N. Last' to 'Last, F.M.N.'
+Works with various formats:
+  - Regular names: 'Blaine Mooers' -> 'Mooers, B.'
+  - With middle initials: 'Blaine H M Mooers' -> 'Mooers, B.H.M.'
+  - With dotted initials: 'Blaine H.M. Mooers' -> 'Mooers, B.H.M.'
+  - Multiple authors (comma-separated)
+
+Select a region with author names and run this function to reformat them."
+  (interactive "r")
+  (when (use-region-p)
+    (let* ((text (buffer-substring-no-properties begin end))
+           (authors (split-string text "," t "[ \t\n\r]+"))
+           (formatted-list '()))
+  
+      ;; Process each author
+      (dolist (author authors)
+        (let* ((parts (split-string (string-trim author) "[ \t]+" t))
+               (last-name (car (last parts)))
+               (first-names (butlast parts))
+               (initials ""))
+      
+          ;; Process each first/middle name or initial
+          (dolist (name first-names)
+            (cond
+             ;; Case 1: Already dotted initials (like "H.M.")
+             ((string-match-p "\\." name)
+              (let* ((split-initials (split-string name "\\." t))
+                     (cleaned-initials 
+                      (mapcar (lambda (i) (concat i ".")) split-initials)))
+                (setq initials (concat initials 
+                                      (mapconcat 'identity cleaned-initials "")))))
+         
+             ;; Case 2: Single letter (already an initial)
+             ((= (length name) 1)
+              (setq initials (concat initials name ".")))
+         
+             ;; Case 3: Full name (First letter capital, rest lowercase)
+             ((string-match-p "^[A-Z][a-z]+$" name)
+              (setq initials (concat initials (substring name 0 1) ".")))
+         
+             ;; Case 4: Multiple uppercase letters (like "HM")
+             ((string-match-p "^[A-Z]+$" name)
+              (dolist (c (string-to-list name))
+                (setq initials (concat initials (char-to-string c) "."))))
+         
+             ;; Case 5: Anything else - just take first letter to be safe
+             (t
+              (setq initials (concat initials (substring name 0 1) ".")))))
+      
+          ;; Add formatted name to list
+          (push (concat last-name ", " initials) formatted-list)))
+  
+      ;; Create final result and replace region
+      (let ((result (mapconcat 'identity (nreverse formatted-list) ", ")))
+        (delete-region begin end)
+        (goto-char begin)
+        (insert result)
+        (message "Authors reformatted successfully")))))
+
+
+;;; works with imakeidx package in org-mode. Could work in Autex too.
 (defun ml/insert-main-index-entry ()
   "Insert a general index entry"
   (interactive)
@@ -43,7 +104,9 @@
     "Replace the citekey under the cursor with LaTeX-wrapped text and create a 
     corresponding empty citekey.org file in abibNotes folder in the home directory. 
     The LaTeX code uses the bibentry package to inject a bibliographic entry into 
-    a section heading that is added in the table of contents."
+    a section heading that is added in the table of contents. The function still
+    fails to automatically deduce the local bib file. To compensate, you are prompted
+    for the project number. Because it is not automatic, this functin is alpha."
 
     (interactive)
     (let* ((bounds (or (save-excursion
@@ -70,7 +133,7 @@
           (cond 
            ;; First try to find "ab2156" pattern in the buffer file name
            ((and current-file 
-                 (string-match "ab\\([0-9]+\\)" (file-name-nondirectory current-file)))
+                 (string-match "ab\\([0-9]+\\).org" (file-name-nondirectory current-file)))
             (match-string 1 current-file))
      
            ;; Look for "2156" in the buffer file name
