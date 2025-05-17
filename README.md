@@ -1,4 +1,4 @@
-![Version](https://img.shields.io/static/v1?label=matplotlib-voice-in&message=0.5&color=brightcolor)
+![Version](https://img.shields.io/static/v1?label=matplotlib-voice-in&message=0.6&color=brightcolor)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](https://opensource.org/licenses/MIT)
 
 
@@ -72,7 +72,7 @@ Enter `M-x ml/mooerslab-functions-open` to edit the file.
 | Function | Description |
 | --- | --- |
 | `mooerslab-append-log-to-org-agenda-files` | Interactively append a log####.org file to org-agenda-files list. Updates both the current org-agenda-files variable in memory and the setq statement in init.el. Customize the path to your init.el file. |
-| `mooerslab-beginning-of-list` | Move to beginning of the current list. Handles org-mode lists, checklists, and LaTeX lists. |
+| `mooerslab-beginning-of-list` | Move to the beginning of the current list. Handles org-mode lists, checklists, and LaTeX lists. |
 | `mooerslab-carry-forward-todos` | Carry forward undone TODOs and unchecked items to Next Week while preserving categories. |
 | `mooerslab-convert-init-el-to-org` | Convert an Emacs init.el file to an Org-mode file. |
 | `mooerslab-convert-org-checklist-to-dash-list` | Convert org-mode checklist items to simple dash list items in the selected region. BEGIN and END define the boundaries of the region. Generated with Claude 3.7 Sonnet May 7, 2025. |
@@ -80,10 +80,10 @@ Enter `M-x ml/mooerslab-functions-open` to edit the file.
 | `mooerslab-create-org-table-with-caption` | This interactive function prompts the user for the number of rows. columns, and the caption of the table. |
 | `mooerslab-csv2org` | Convert a CSV file to an Org-mode table. Prompts for a CSV file and optionally a caption. Creates a new buffer containing the Org-mode table. Does NOT handle CSV files with quoted fields containing commas. CSV-FILE: The path to the CSV file. CAPTION: (Optional) A string to use as the table caption. |
 | `mooerslab-end-of-list` | Move to end of the current list. Handles org-mode lists, checklists, and LaTeX lists. |
-| `mooerslab-export-csv-to-matched-sqlite-table` | Export selected rows from a CSV file to an SQLite database. Automatically determines column count and validates against table structure. |
+| `mooerslab-export-csv-to-matched-sqlite-table` | Export selected rows from a CSV file to an SQLite database. Automatically determines column count and validates against the table structure. |
 | `mooerslab-export-csv-to-sqlite-table` | Export selected rows from a CSV file to an SQLite database. |
 | `mooerslab-find-file-at-line` | Open FILE on LINE. |
-| `mooerslab-format-authors-in-region` | Format author names in region from ’First M.N. Last’ to ’Last, F.M.N.’ Works with various formats: - Regular names: ’Blaine Mooers’ -> ’Mooers, B.’ - With whitespace mulitple middle initials: ’Blaine H M Mooers’ -> ’Mooers, B.H.M.’ - With no whitespace mulitple middle initials: ’Blaine HM Mooers’ -> ’Mooers, B.H.M.’ - With dotted multiple initials: ’Blaine H.M. Mooers’ -> ’Mooers, B.H.M.’ - Multiple authors (comma-separated) Select a region with author names and run this function to reformat them. This is very useful during the preparation of grant progress reports and bibtex entries. |
+| `mooerslab-format-authors-in-region` | Format author names in region from ’First M.N. Last’ to ’Last, F.M.N.’ Works with various formats: - Regular names: ’Blaine Mooers’ -> ’Mooers, B.’ - With whitespace mulitple middle initials: ’Blaine H M Mooers’ -> ’Mooers, B.H.M.’ - With no whitespace mulitple middle initials: ’Blaine HM Mooers’ -> ’Mooers, B.H.M.’ - With dotted multiple initials: ’Blaine H.M. Mooers’ -> ’Mooers, B.H.M.’ - Multiple authors (comma-separated) Select a region with author names and run this function to reformat them. This is very useful during the preparation of grant progress reports and BibTeX entries. |
 | `mooerslab-generate-tar-commands` | Generate tar commands for a list of paths. Each path’s last component becomes the name of the tar file. START and END define the region containing the paths (one per line). If no region is active, operate on the entire buffer. |
 | `mooerslab-generate-tar-commands-with-chain` | Generate tar commands for a list of paths with && between commands. Each path’s last component becomes the name of the tar file. START and END define the region containing the paths (one per line). If no region is active, operate on the entire buffer. |
 | `mooerslab-get-citekeys-from-bibtex-file` | Prompt for a BibTeX filename in the minibuffer, extract citekeys, and insert an alphabetized itemized list into the current buffer at the cursor position. |
@@ -152,6 +152,7 @@ Ready to roll.
 | Version 0.3 |   Added code for use straight to install this package.                                                                                    | 2025 February 16    |
 | Version 0.4 |   Updated functions from emacs29 to emacs30.                                                                                              | 2025 March 3    |
 | Version 0.5 |   Added function to add period to end of sentences in various kinds of lists in org and LaTeX files.                                      | 2025 March 4    |
+| Version 0.6 |   Added table of functions and their docstrings.                                                                                         | 2025 May 17    |
 
 
 ## Sources of funding
