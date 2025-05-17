@@ -17,11 +17,14 @@
   "Format author names in region from 'First M.N. Last' to 'Last, F.M.N.'
 Works with various formats:
   - Regular names: 'Blaine Mooers' -> 'Mooers, B.'
-  - With middle initials: 'Blaine H M Mooers' -> 'Mooers, B.H.M.'
-  - With dotted initials: 'Blaine H.M. Mooers' -> 'Mooers, B.H.M.'
+  - With whitespace mulitple middle initials: 'Blaine H M Mooers' -> 'Mooers, B.H.M.'
+  - With no whitespace mulitple middle initials: 'Blaine HM Mooers' -> 'Mooers, B.H.M.'
+  - With dotted multiple initials: 'Blaine H.M. Mooers' -> 'Mooers, B.H.M.'
   - Multiple authors (comma-separated)
 
-Select a region with author names and run this function to reformat them."
+Select a region with author names and run this function to reformat them.
+
+This is very useful during the preparation of grant progress reports and bibtex entries."
   (interactive "r")
   (when (use-region-p)
     (let* ((text (buffer-substring-no-properties begin end))
