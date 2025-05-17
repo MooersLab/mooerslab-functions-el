@@ -49,6 +49,60 @@
     (message "Created org-mode list of %d functions in package %s" 
              (length functions-list) package-name)))
 
+
+(defun mooerslab-github-markdown-table-package-functions ()
+  "Create a GitHub markdown table of all functions in a package and their docstrings.
+   Prompts the user for a package name in the minibuffer and ensures proper text formatting
+   without excessive spaces between letters in the output."
+  (interactive)
+  (let* ((package-name (intern (completing-read "Package name: " 
+                                               (mapcar #'symbol-name features))))
+         (package-symbols (apropos-internal (concat "^" (symbol-name package-name) "-") 'fboundp))
+         (buffer (get-buffer-create (format "*%s-functions-markdown*" package-name)))
+         (functions-list))
+
+    ;; Create list of function symbols in the package
+    (setq functions-list 
+          (sort package-symbols #'(lambda (a b) 
+                                   (string< (symbol-name a) (symbol-name b)))))
+
+    ;; Switch to the output buffer
+    (switch-to-buffer buffer)
+    (erase-buffer)
+    (when (fboundp 'markdown-mode)
+      (markdown-mode))
+
+    ;; Insert header
+    (insert (format "# Functions in package: %s\n\n" package-name))
+
+    ;; Insert markdown table header
+    (insert "| Function | Description |\n")
+    (insert "| --- | --- |\n")
+
+    ;; Insert functions and docstrings as table rows
+    (if functions-list
+        (dolist (func-symbol functions-list)
+          (let* ((func-name (symbol-name func-symbol))
+                 (raw-doc (or (documentation func-symbol) "No documentation available"))
+                 ;; Clean the docstring of markdown table-breaking characters
+                 (doc (replace-regexp-in-string "\n" " " raw-doc))
+                 (doc (replace-regexp-in-string "|" "\\\\|" doc))
+                 ;; Remove any carriage returns that might be present
+                 (doc (replace-regexp-in-string "\r" "" doc))
+                 ;; Ensure only a single space between words
+                 (doc (replace-regexp-in-string "\\s-+" " " doc)))
+            ;; Insert the row with function name in backticks and cleaned docstring
+            (insert (format "| `%s` | %s |\n" func-name doc))))
+      (insert "| No functions found in this package | |\n"))
+
+    ;; Return to the beginning of the buffer
+    (goto-char (point-min))
+
+    ;; Message to user
+    (message "Created GitHub markdown table of %d functions in package %s" 
+             (length functions-list) package-name)))
+
+
 (defun mooerslab-format-authors-in-region (begin end)
   "Format author names in region from 'First M.N. Last' to 'Last, F.M.N.'
 Works with various formats:
