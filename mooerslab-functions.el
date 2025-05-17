@@ -8,12 +8,50 @@
 ;; Version: 0.5
 ;; Keywords: data, pdb
 ;; License: MIT
-;; Updated 2025 March 29
+;; Updated 2025 May 17
 
 ;;; This package is known to work (insofar as it's tested) with Emacs 30.1.
 
+(defun mooerslab-org-list-package-functions ()
+  "Returns in a new buffer a dashed org-mode list of all functions in a package.
+   Prompts the user for a package name in the minibuffer."
+  (interactive)
+  (let* ((package-name (intern (completing-read "Package name: " 
+                                               (mapcar #'symbol-name features))))
+         (package-symbols (apropos-internal (concat "^" (symbol-name package-name) "-") 'fboundp))
+         (buffer (get-buffer-create (format "*%s-functions*" package-name)))
+         (functions-list))
 
-(defun ml/format-authors-in-region (begin end)
+    ;; Create list of function symbols in the package
+    (setq functions-list 
+          (sort (mapcar #'symbol-name package-symbols) #'string<))
+
+    ;; Switch to the output buffer
+    (switch-to-buffer buffer)
+    (erase-buffer)
+    (org-mode)
+
+    ;; Insert header
+    (insert (format "* Functions in package: %s\n\n" package-name))
+
+    ;; Insert functions as dashed list
+    (if functions-list
+        (dolist (func functions-list)
+          (insert (format "- %s\n" func)))
+      (insert "- No functions found in this package\n"))
+
+    ;; Align and indent the list properly
+    (org-list-indent-item-generic 0 t)
+
+    ;; Return to the beginning of the buffer
+    (goto-char (point-min))
+
+    ;; Message to user
+    (message "Created org-mode list of %d functions in package %s" 
+             (length functions-list) package-name)))
+
+
+(defun mooerslab-format-authors-in-region (begin end)
   "Format author names in region from 'First M.N. Last' to 'Last, F.M.N.'
 Works with various formats:
   - Regular names: 'Blaine Mooers' -> 'Mooers, B.'
@@ -77,14 +115,14 @@ This is very useful during the preparation of grant progress reports and bibtex 
         (message "Authors reformatted successfully")))))
 
 
-;;; works with imakeidx package in org-mode. Could work in Autex too.
-(defun ml/insert-main-index-entry ()
+;;; Works with the LaTeX imakeidx package in org-mode, which supports the use of two or more indices. Could work in Autex too.
+(defun mooerslab-insert-main-index-entry ()
   "Insert a general index entry"
   (interactive)
   (let ((term (read-string "Index term: ")))
     (insert "\\index[main]{" term "}")))
 
-(defun ml/insert-author-index-entry ()
+(defun mooerslab-insert-author-index-entry ()
   "Insert an author index entry"
   (interactive)
   (let ((author (read-string "Author (Last, First): ")))
@@ -103,7 +141,7 @@ This is very useful during the preparation of grant progress reports and bibtex 
        '(define-key Latex-mode-map (kbd "C-c w m") 'insert-main-index-entry))
 
 
-(defun ml/wrap-citar-citekey-and-create-abibnote-org ()
+(defun mooerslab-wrap-citar-citekey-and-create-abibnote-org ()
     "Replace the citekey under the cursor with LaTeX-wrapped text and create a 
     corresponding empty citekey.org file in abibNotes folder in the home directory. 
     The LaTeX code uses the bibentry package to inject a bibliographic entry into 
@@ -222,101 +260,9 @@ This is very useful during the preparation of grant progress reports and bibtex 
 
 
 
-;
-; (defun ml/wrap-citar-citekey-and-create-abibnote-org ()
-;   "Replace the citekey under the cursor with LaTeX-wrapped text and create a corresponding minimal .org file in abibNotes."
-;   (interactive)
-;   (let* ((bounds (or (save-excursion
-;                       ;; Check if we're inside a citation
-;                       (let ((start (re-search-backward "\\[cite:@" (line-beginning-position) t))
-;                             (end (re-search-forward "\\]" (line-end-position) t)))
-;                         (when (and start end)
-;                           (cons start end))))
-;                     ;; Otherwise just get the word at point
-;                     (bounds-of-thing-at-point 'word)))
-;          (citation-text (when bounds
-;                           (buffer-substring-no-properties (car bounds) (cdr bounds))))
-;          (citekey (when citation-text
-;                     (if (string-match "\\[cite:@\\([^]]+\\)\\]" citation-text)
-;                         (match-string 1 citation-text)
-;                       citation-text))) ;; Plain word if not a citation
-;          ;; Extract project number and directory from current buffer filename
-;          (current-file (buffer-file-name))
-;          (current-dir (when current-file (file-name-directory current-file)))
-;          (project-number (when current-file
-;                            (if (string-match "ab\\([0-9]+\\)" (file-name-nondirectory current-file))
-;                                (match-string 1 current-file)
-;                              (when (string-match "\\([0-9]+\\)" (file-name-nondirectory current-file))
-;                                (match-string 1 current-file)))))
-;          (org-file-dir "/Users/blaine/abibNotes/") ;; Directory for the .org file
-;          (bib-file-path (and current-dir project-number
-;                              (concat current-dir "ab" project-number ".bib"))) ;; Keep .bib in current directory
-;          (org-file-path (and citekey (concat org-file-dir citekey ".org"))) ;; Full path for the .org file
-;          (wrapped-text (and citekey (format "#+LATEX: \\subsubsection*{\\bibentry{%s}}\n#+LATEX: \\addcontentsline{toc}{subsubsection}{%s}\n#+INCLUDE: %s"
-;                                           citekey citekey org-file-path))))
-;     (if (not citekey)
-;         (message "No citekey found under the cursor.")
-;       (progn
-;         ;; Delete the citation or word at cursor
-;         (when bounds
-;           (delete-region (car bounds) (cdr bounds)))
-;         ;; Insert the wrapped text in its place
-;         (insert wrapped-text)
-;
-;         ;; Create a minimal .org file if it doesn't already exist - no header, no headline
-;         (if (file-exists-p org-file-path)
-;             (message "File %s already exists." org-file-path)
-;           (with-temp-file org-file-path
-;             (insert ""))) ;; Empty file
-;
-;         ;; Append the BibTeX entry to the project-specific .bib file in current directory
-;         (require 'bibtex)
-;         (when (and (featurep 'citar) current-dir bib-file-path project-number)  ;; Ensure we have all required paths
-;           ;; Get the bibtex entry using search in citar bibliography files
-;           (let* ((bib-files (citar--bibliography-files))
-;                  (bibtex-entry nil))
-;
-;             ;; Look through each bibliography file for the entry
-;             (when bib-files
-;               (catch 'found
-;                 (dolist (bib-file bib-files)
-;                   (with-temp-buffer
-;                     (insert-file-contents bib-file)
-;                     (bibtex-mode)
-;                     (bibtex-set-dialect 'BibTeX t)
-;                     (goto-char (point-min))
-;                     (when (re-search-forward (format "@[^{]+{%s," citekey) nil t)
-;                       (let ((beg (save-excursion
-;                                    (bibtex-beginning-of-entry)
-;                                    (point)))
-;                             (end (save-excursion
-;                                    (bibtex-end-of-entry)
-;                                    (point))))
-;                         (setq bibtex-entry (buffer-substring-no-properties beg end))
-;                         (throw 'found t)))))))
-;
-;             (if bibtex-entry
-;                 (progn
-;                   ;; Make sure the directory exists
-;                   (unless (file-exists-p (file-name-directory bib-file-path))
-;                     (make-directory (file-name-directory bib-file-path) t))
-;
-;           ;; Now append to the bib file
-;           (with-temp-file bib-file-path
-;             (when (file-exists-p bib-file-path)
-;               (insert-file-contents bib-file-path))
-;             (goto-char (point-max))
-;             (unless (or (bobp) (bolp)) (insert "\n"))
-;             (insert bibtex-entry "\n\n"))
-;           (message "Added BibTeX entry to %s" bib-file-path))
-;       (message "Could not retrieve BibTeX entry for %s" citekey))))
-;
-; ;; Open the .org file in a new buffer
-; (find-file org-file-path)
-; (message "Replaced citekey, created .org file, and opened it: %s" org-file-path)))))
 
 
-(defun ml/convert-org-checklist-to-dash-list (begin end)  
+(defun mooerslab-convert-org-checklist-to-dash-list (begin end)  
   "Convert org-mode checklist items to simple dash list items in the selected region.  
 BEGIN and END define the boundaries of the region. Generated with Claude 3.7 Sonnet May 7, 2025."  
   (interactive "r")  ; "r" means the function takes region as input  
@@ -330,7 +276,7 @@ BEGIN and END define the boundaries of the region. Generated with Claude 3.7 Son
 
 ;% This function eases adding log files to the list of files for org-agenda to search for to-dos.
 ;% Another example of spending an hour to save a minute!
-(defun ml/append-log-to-org-agenda-files ()
+(defun mooerslab-append-log-to-org-agenda-files ()
   "Interactively append a log####.org file to org-agenda-files list.
 Updates both the current org-agenda-files variable in memory and the setq statement in init.el.
 Customize the path to your init.el file."
@@ -398,7 +344,7 @@ Customize the path to your init.el file."
             (message "Added to org-agenda-files and init.el: %s" selected-file)))))))
 
 
-(defun ml/org-add-periods-to-list-items (begin end)
+(defun mooerslab-org-add-periods-to-list-items (begin end)
   "Add periods to the end of all items in the selected org-mode list if missing.
 It operates only in the selected region between BEGIN and END.
 Preserves both checked and unchecked checkboxes and the initial dash.
@@ -413,7 +359,7 @@ Suitable for preparing bullet lists for slides."
 
 
 ;;; add-periods-to-list
-(defun ml/org-or-latex-add-periods-to-list ()
+(defun mooerslab-org-or-latex-add-periods-to-list ()
   "Add a period to the end of each line in the current list if missing.
 Designed to work in both org and latex files.
 This is a massive problem with lists in slideshows.
@@ -444,7 +390,7 @@ Developed with the help of Claude 3.5 Sonnet."
 (global-set-key (kbd "C-c p") 'org-or-latex-add-periods-to-list)
 
 
-(defun ml/beginning-of-list ()
+(defun mooerslab-beginning-of-list ()
   "Move to beginning of the current list.
 Handles org-mode lists, checklists, and LaTeX lists."
   (while (and (not (bobp))
@@ -455,7 +401,7 @@ Handles org-mode lists, checklists, and LaTeX lists."
   (forward-line 1))
 
 
-(defun ml/end-of-list ()
+(defun mooerslab-end-of-list ()
   "Move to end of the current list.
 Handles org-mode lists, checklists, and LaTeX lists."
   (while (and (not (eobp))
@@ -470,7 +416,7 @@ Handles org-mode lists, checklists, and LaTeX lists."
 ;; The manual cutting and pasting for five categories per day or week can take a long time.
 ;; I know that org-agenda can do something like this.
 ;; I want more control.
-(defun ml/carry-forward-todos ()
+(defun mooerslab-carry-forward-todos ()
 "Carry forward undone TODOs and unchecked items to Next Week while preserving categories."
 (interactive)
 (save-excursion
@@ -568,11 +514,11 @@ Handles org-mode lists, checklists, and LaTeX lists."
                                    t)
              (replace-match "\\1[X]" nil nil))))
        t 'tree)))))
-(global-set-key (kbd "C-c f") 'ml/carry-forward-todos)
+(global-set-key (kbd "C-c f") 'mooerslab-carry-forward-todos)
 
 
 ;;; org-insert-external-file
-(defun ml/org-insert-external-file (file-path)
+(defun mooerslab-org-insert-external-file (file-path)
   "Insert the contents of an external file into the current org-mode file.
 Prompts for a file path via minibuffer and includes a timestamp in a comment."
   (interactive "fFile to be inserted: ")
@@ -586,7 +532,7 @@ Prompts for a file path via minibuffer and includes a timestamp in a comment."
 ;;; org-insert-protocol-file
 ;% Insert the contents of a protocol file into the current org file.
 ;% I am using org-capture to do this in org-roam these days.
-(defun ml/org-insert-protocol-file (file-path)
+(defun mooerslab-org-insert-protocol-file (file-path)
   "Insert the contents of a protocol file from ~/org-roam/protocols into the current org-mode file.
 Prompts for a file path via minibuffer and includes a timestamp in a comment."
   (interactive (list (read-file-name "Directory `~/org-roam/protocols`: " "~/" "org-roam/" "protocols/")))
@@ -621,7 +567,7 @@ Prompts for a file path via minibuffer and includes a timestamp in a comment."
 
 
 ;;; region-to-itemized-list-in-org
-(defun ml/org-region-to-itemized-list ()
+(defun mooerslab-org-region-to-itemized-list ()
   "Convert the lines in a selected region into an itemized list."
   (interactive)
   (let ((start (region-beginning))
@@ -639,7 +585,7 @@ Prompts for a file path via minibuffer and includes a timestamp in a comment."
 (global-set-key (kbd "C-c l") 'region-to-itemized-list)
 
 
-(defun ml/org-convert-unordered-to-ordered-list (start end)  
+(defun mooerslab-org-convert-unordered-to-ordered-list (start end)  
   "Convert unnumbered list items to numbered list items in the marked region."  
   (interactive "r")  
   (save-excursion  
@@ -651,9 +597,9 @@ Prompts for a file path via minibuffer and includes a timestamp in a comment."
           (replace-match (format "\\1%d.\\3" counter) t)  
           (setq counter (1+ counter)))))))
 
-(global-set-key (kbd "C-c C-x n") 'ml/org-convert-unordered-to-ordered-list)  
+(global-set-key (kbd "C-c C-x n") 'mooerslab-org-convert-unordered-to-ordered-list)  
 
-(defun ml/org-convert-list-in-region-to-checkboxes (start end)  
+(defun mooerslab-org-convert-list-in-region-to-checkboxes (start end)  
   "Convert a dash/hyphen bullet list to org-mode checkboxes in region from START to END."  
   (interactive "r")  
   (save-excursion  
@@ -664,7 +610,7 @@ Prompts for a file path via minibuffer and includes a timestamp in a comment."
     (widen)))
 
 
-(defun ml/org-convert-checkboxes-in-region-to-list (start end)  
+(defun mooerslab-org-convert-checkboxes-in-region-to-list (start end)  
   "Convert org-mode checkboxes to a regular dash/hyphen bullet list in region from START to END."  
   (interactive "r")  
   (save-excursion  
@@ -677,7 +623,7 @@ Prompts for a file path via minibuffer and includes a timestamp in a comment."
     (widen)))  
 
 
-(defun ml/open-file-in-textmate ()
+(defun mooerslab-open-file-in-textmate ()
   "Open the current file or `dired' marked files in TextMate.
    This command is for macOS only. Modified from 
    URL `http://xahlee.info/emacs/emacs/emacs_open_in_textedit.html'
@@ -691,7 +637,7 @@ Prompts for a file path via minibuffer and includes a timestamp in a comment."
       (mapc (lambda (x) (shell-command (format "open -a TextMate.app \"%s\"" x))) xFList))))
 
 
-(defun ml/org-markmap-region (start end)
+(defun mooerslab-org-markmap-region (start end)
   "Export selected org region to a mindmap using markmap.
 Requires markmap-cli (npm install -g markmap-cli)."
   (interactive "r")
@@ -713,10 +659,10 @@ Requires markmap-cli (npm install -g markmap-cli)."
     ;; Open in default browser
     (browse-url (concat "file://" tmp-html))
     (message "Markmap mindmap generated and opened in browser.")))
-(global-set-key (kbd "C-x C-m") 'ml/org-markmap-region)
+(global-set-key (kbd "C-x C-m") 'mooerslab-org-markmap-region)
 
 
-(defun ml/remove-blank-lines-in-region (start end)
+(defun mooerslab-remove-blank-lines-in-region (start end)
   "Remove all blank lines in the region between START and END."
   (interactive "r")
   (save-excursion
@@ -726,7 +672,7 @@ Requires markmap-cli (npm install -g markmap-cli)."
       (flush-lines "^$"))))
 
 
-(defun ml/md-to-latex-region (start end)  
+(defun mooerslab-md-to-latex-region (start end)  
   "Convert markdown in region between START and END to LaTeX format.  
 Uses direct pandoc conversion and carefully handles formatting issues."  
   (interactive "r")  
@@ -791,7 +737,7 @@ Uses direct pandoc conversion and carefully handles formatting issues."
 
 
 
-(defun ml/org-convert-lines-to-org-checklist (beg end)  
+(defun mooerslab-org-convert-lines-to-org-checklist (beg end)  
   "Convert lines in region to org-mode checklist items.  
 Preserves existing checkboxes, indentation, and empty lines.  
 If no region is active, operate on the current buffer."  
@@ -829,7 +775,7 @@ If no region is active, operate on the current buffer."
     (insert result)))  
 
 
-(defun ml/string-to-org-checklist (text)  
+(defun mooerslab-string-to-org-checklist (text)  
   "Convert string TEXT to org-mode checklist format.  
 Preserves existing checkboxes, indentation, and empty lines."  
   (with-temp-buffer  
@@ -838,7 +784,7 @@ Preserves existing checkboxes, indentation, and empty lines."
     (buffer-string)))  
 
 
-(defun ml/org-checklist-from-kill-ring ()  
+(defun mooerslab-org-checklist-from-kill-ring ()  
   "Convert the latest kill-ring entry to org checklist format and put it back in the kill ring."  
   (interactive)  
   (when kill-ring  
@@ -847,7 +793,7 @@ Preserves existing checkboxes, indentation, and empty lines."
       (message "Converted text to org checklist and placed in kill ring"))))  
 
 
-(defun ml/md-to-org-region (start end)
+(defun mooerslab-md-to-org-region (start end)
   "Convert markdown in region between START and END to org-mode format.
 Uses direct pandoc conversion and carefully removes blank lines between list items."
   (interactive "r")
@@ -921,7 +867,7 @@ Uses direct pandoc conversion and carefully removes blank lines between list ite
         (insert orig-content)))))
 
 ;;; region-to-todos-in-org
-(defun ml/org-convert-region-to-fourth-level-todos ()
+(defun mooerslab-org-convert-region-to-fourth-level-todos ()
   "Convert each line in the region to a level four heading."
   (interactive)
   (if (use-region-p)
@@ -937,7 +883,7 @@ Uses direct pandoc conversion and carefully removes blank lines between list ite
     (message "No region selected")))
 
 
-(defun ml/org-convert-itemized-list-in-region-to-checklist ()
+(defun mooerslab-org-convert-itemized-list-in-region-to-checklist ()
   "Convert an org-mode itemized list (starting with '-') to a checklist (starting with '- [ ]')."
   (interactive)
   (save-excursion
@@ -953,7 +899,7 @@ Uses direct pandoc conversion and carefully removes blank lines between list ite
       (message "Converted %d items to checklist" count))))
 
 
-(defun ml/org-convert-itemized-list-in-region-to-fourth-level-todos ()
+(defun mooerslab-org-convert-itemized-list-in-region-to-fourth-level-todos ()
   "Convert selected region of org-mode itemized list to fourth-order TODOs.
 Requires an active region selection."
   (interactive)
@@ -975,7 +921,7 @@ Requires an active region selection."
           (message "Converted %d items to fourth-order TODOs" count))))))
 
 
-(defun ml/org-convert-checklist-in-region-to-fourth-level-todos ()
+(defun mooerslab-org-convert-checklist-in-region-to-fourth-level-todos ()
   "Convert selected region of org-mode checklist to fourth-order TODOs.
 Converts items starting with '- [ ]' to '**** TODO'.
 Requires an active region selection."
@@ -999,7 +945,7 @@ Requires an active region selection."
 
 
 ;;; region-to-itemized-in-latex
-(defun ml/latex-region-to-itemized-list (start end)
+(defun mooerslab-latex-region-to-itemized-list (start end)
   "Converts the region between START and END to an itemized list in LaTeX"
   (interactive "r")  ; Use "r" to read region bounds automatically
   (let* ((text (buffer-substring-no-properties start end))
@@ -1016,7 +962,7 @@ Requires an active region selection."
 
 
 ;;; region of csv list to latex
-(defun ml/latex-convert-csv-to-itemized-list (start end)
+(defun mooerslab-latex-convert-csv-to-itemized-list (start end)
   "Convert a comma-separated list in the selected region to a LaTeX itemized list."
   (interactive "r")
   (let ((csv-text (buffer-substring-no-properties start end)))
@@ -1031,7 +977,7 @@ Requires an active region selection."
 ;;; convert-init-el-to-init-org
 ;% The goal is to convert the init.el file to an org file is to be rendered on GitHub or locally in HTML or PDF.
 ;% This function is a work in progress.
-(defun ml/convert-init-el-to-org (input-file output-file)
+(defun mooerslab-convert-init-el-to-org (input-file output-file)
   "Convert an Emacs init.el file to an Org-mode file."
   (with-temp-buffer
     (insert-file-contents input-file)
@@ -1073,7 +1019,7 @@ Requires an active region selection."
 ;;; Convert a selected latex list of items to an org-mode list
 ;%  To use this function, select the region containing the LaTeX list and run:
 ;%  M-x latex-to-org-list-region
-(defun ml/latex-to-org-list-region (start end)
+(defun mooerslab-latex-to-org-list-region (start end)
   "Convert a LaTeX itemize list in the region to an Org-mode list."
   (interactive "r")
   (save-excursion
@@ -1081,11 +1027,11 @@ Requires an active region selection."
     (while (re-search-forward "\\\\item" end t)
       (replace-match "-"))))
 
-;;; ml/region-csv-to-org-table
+;;; mooerslab-region-csv-to-org-table
 ;% Ceontert selected rows in CSV format into a org-tabl
 
 
-(defun ml/region-csv-to-org-table ()
+(defun mooerslab-region-csv-to-org-table ()
   "Convert CSV data in region to org table format.
 Assumes first row contains headers and uses commas as delimiters."
   (interactive)
@@ -1121,7 +1067,7 @@ Assumes first row contains headers and uses commas as delimiters."
 
 ;;; create-org-table-with-caption
 ;%  This interactive function prompts the user to select the table's number of rows, columns, and caption.
-(defun ml/create-org-table-with-caption ()
+(defun mooerslab-create-org-table-with-caption ()
   "This interactive function prompts the user for the number of rows. columns, and the caption of the table."
   (interactive)
   (let ((rows (read-number "Enter the number of rows: "))
@@ -1152,7 +1098,7 @@ Assumes first row contains headers and uses commas as delimiters."
 
 ;;;  count-non-blank-lines
 ;% Count the number of non-blank lines in the current buffer.
-(defun ml/count-non-blank-lines ()
+(defun mooerslab-count-non-blank-lines ()
   "Count the number of non-blank lines in the current buffer."
   (interactive)
   (let ((count 0))
@@ -1166,7 +1112,7 @@ Assumes first row contains headers and uses commas as delimiters."
 
 
 ;;;## Convert CSV file into an org table. It will convert internal commas inside strings into pipes.
-(defun ml/csv2org (csv-file &optional caption)
+(defun mooerslab-csv2org (csv-file &optional caption)
   "Convert a CSV file to an Org-mode table.
 
 Prompts for a CSV file and optionally a caption.  Creates a new
@@ -1227,7 +1173,7 @@ CAPTION: (Optional) A string to use as the table caption."
 ;% Usage example:
 ;% (export-csv-to-qiterm "~/6233iterm/qiterm.csv" "~/6233iterm/qiterm.db" "qiterm")
 (with-eval-after-load 'sqlite
-(defun ml/export-csv-to-sqlite-table (csv-file db-file table-name)
+(defun mooerslab-export-csv-to-sqlite-table (csv-file db-file table-name)
   "Export selected rows from a CSV file to an SQLite database."
   (interactive "fCSV file: \nfSQLite DB file: \nsTable name: ")
   (let ((db (sqlite3-open db-file))
@@ -1256,7 +1202,7 @@ CAPTION: (Optional) A string to use as the table caption."
 ;% Usage example:
 ;% (export-csv-to-matched-sqlite-table "~/6233iterm/qiterm.csv" "~/6233iterm/qiterm.db" "qiterm")
 (with-eval-after-load 'sqlite
-(defun ml/export-csv-to-matched-sqlite-table  (csv-file db-file table-name)
+(defun mooerslab-export-csv-to-matched-sqlite-table  (csv-file db-file table-name)
   "Export selected rows from a CSV file to an SQLite database.
 Automatically determines column count and validates against table structure."
   (interactive "fCSV file: \nfSQLite DB file: \nsTable name: ")
@@ -1298,7 +1244,7 @@ Automatically determines column count and validates against table structure."
 
 ;;; find file and go to line number
 ;%  interactively enter the file name and line number in the minibuffer
-(defun ml/find-file-at-line (file line)
+(defun mooerslab-find-file-at-line (file line)
   "Open FILE on LINE."
   (interactive "fFile: \nNLine: \n")
   (find-file file)
@@ -1337,10 +1283,10 @@ Automatically determines column count and validates against table structure."
 
 
 
-;; M-x ml/generate-tar-commands-with-chain after making a selection of a list of file paths to
+;; M-x mooerslab-generate-tar-commands-with-chain after making a selection of a list of file paths to
 ;; generate the tar commands to tar the folders in the current directory from which the 
 ;; tar command is issue. This is very helpful when the harddrive is full or read-only.
-(defun ml/generate-tar-commands (start end)
+(defun mooerslab-generate-tar-commands (start end)
   "Generate tar commands for a list of paths.
    Each path's last component becomes the name of the tar file.
    START and END define the region containing the paths (one per line).
@@ -1375,7 +1321,7 @@ Automatically determines column count and validates against table structure."
         (delete-region (point-min) (point-max))
         (insert result)))))
 
-(defun ml/generate-tar-commands-with-chain (start end)
+(defun mooerslab-generate-tar-commands-with-chain (start end)
   "Generate tar commands for a list of paths with && between commands.
    Each path's last component becomes the name of the tar file.
    START and END define the region containing the paths (one per line).
@@ -1418,7 +1364,7 @@ Automatically determines column count and validates against table structure."
 
 ;;; get-citekeys-from-bibtex-file
 ;% used to work with annotated bibliography. Returns a list under the cursor in the current buffer.
-(defun ml/get-citekeys-from-bibtex-file ()
+(defun mooerslab-get-citekeys-from-bibtex-file ()
   "Prompt for a BibTeX filename in the minibuffer, extract citekeys, and insert an alphabetized itemized list into the current buffer at the cursor position."
   (interactive)
   (let* ((filename (read-file-name "BibTeX file: ")) ;; Prompt for the BibTeX file
@@ -1443,7 +1389,7 @@ Automatically determines column count and validates against table structure."
 
 ;;; wrap-citekey-and-create-tex-file
 ;% Used to convert a citekey into a section heading.
-(defun ml/wrap-citekey-and-create-abibnote-tex ()
+(defun mooerslab-wrap-citekey-and-create-abibnote-tex ()
   "Replace the citekey under the cursor with LaTeX-wrapped text, create a corresponding .tex file, and open it in a new buffer."
   (interactive)
   (let* ((citekey (thing-at-point 'word t)) ;; Get the citekey under the cursor
@@ -1471,7 +1417,7 @@ Automatically determines column count and validates against table structure."
 
 ;;; insert-org-captioned-figure
 ;%  The function prompts the user for the image file path and name, the label, and the caption.
-(defun ml/insert-org-captioned-figure ()
+(defun mooerslab-insert-org-captioned-figure ()
   "Insert a captioned figure in Org-mode."
   (interactive)
   (let ((image-name (read-string "Enter the image file path: "))
@@ -1485,7 +1431,7 @@ Automatically determines column count and validates against table structure."
 ;;; launch-ithoughtsx
 ;% This is the best mind mapping software that I have encountered.
 ;% Probably better to make a bash alias to avoid tying up keybindings.
-(defun ml/launch-ithoughtsx ()
+(defun mooerslab-launch-ithoughtsx ()
   "Launch iThoughtsX application."
   (interactive)
   (shell-command "open -a iThoughtsX"))
@@ -1496,7 +1442,7 @@ Automatically determines column count and validates against table structure."
 ; ;% I favored the simplicity and power of JabRef for managing BibTeX entries.
 ;% Probably better to make a bash alias to avoid tying up keybindings.
 ;% The Emacs analog is ebib, which is awesome.
-; (defun ml/launch-jabref ()
+; (defun mooerslab-launch-jabref ()
 ;       "Launch jabRef application."
 ;       (interactive)
 ;       (shell-command "open -a JabRef"))
@@ -1506,7 +1452,7 @@ Automatically determines column count and validates against table structure."
 ;;; launch-timesspent
 ;% This is a sqlite database where I track my effort.
 ;% Probably better to make a bash alias to avoid tying up keybindings.
-(defun ml/launch-timesspent ()
+(defun mooerslab-launch-timesspent ()
       "Launch timesspent database."
       (interactive)
       (shell-command "open /Users/blaine/6003TimeTracking/cb/mytime.db"))
@@ -1516,7 +1462,7 @@ Automatically determines column count and validates against table structure."
 ;;; Move the cursor to the minibuffer without using the mouse
 ;%  From video https://www.youtube.com/watch?v=X8c_TrGfYcM&t=15s using Emacs as a multiplexer."
 ;%  Derived from http://stackoverflow.com/a/4116113/446256.
-(defun ml/switch-to-minibuffer ()
+(defun mooerslab-switch-to-minibuffer ()
   "Switch to minibuffer window."
   (interactive)
   (if (active-minibuffer-window)
@@ -1531,7 +1477,7 @@ Automatically determines column count and validates against table structure."
 ;%  The default tag is restart-here.
 ;%  Example usage:
 ;%  (open-org-file-and-move-to-tag "~/path/to/your/file.org" "your-tag")
-(defun ml/open-org-file-and-move-to-tag (file &optional tag)
+(defun mooerslab-open-org-file-and-move-to-tag (file &optional tag)
   "Open an Org file and move the cursor below a headline with a specific TAG.
 If TAG is not provided, use a hardcoded default tag.
 You have to adjust the headline level in the function.
@@ -1546,7 +1492,7 @@ The regular expression ^\\*\\* .*:%s: is used to search for second-level headlin
 
 
 ;;; Move cursor to line with tag
-(defun ml/org-move-to-tag (file &optional tag)
+(defun mooerslab-org-move-to-tag (file &optional tag)
   "Move the cursor below a headline with a specific TAG.
 If TAG is not provided, use a hardcoded default tag.
 You have to adjust the headline level in the function.
@@ -1559,10 +1505,10 @@ The regular expression ^\\*\\* .*:%s: is used to search for second-level headlin
       (message "Tag not found"))))
 
 
-(defun ml/org-append-todo-to-tagged-fourth-level-headline (new-todo &optional tag)
+(defun mooerslab-org-append-todo-to-tagged-fourth-level-headline (new-todo &optional tag)
   "Append a new TODO item to the bottom of the TODO list under a 3rd level headline marked by TAG.
 If TAG is not provided, it defaults to the :appendtodos: tag. This is for the writingLog.org file.
-USAGE: M-x ml/append-todo-to-tagged-headline. Answer the prompts. Works regardless of the position of the
+USAGE: M-x mooerslab-append-todo-to-tagged-headline. Answer the prompts. Works regardless of the position of the
 point relative to the headline with the tag."
   (interactive "sNew TODO: \nsTag (default appendtodos): ")
   (let ((tag (if (string-empty-p tag) "appendtodos" tag)))
@@ -1577,7 +1523,7 @@ point relative to the headline with the tag."
 ;% Open template file renamed with the citekey under the point.
 ;% This file is for use with an annotated bibliography.
 ;% Developed with the help of CoPilot.
-(defun ml/open-new-abibnote-on-citekey ()
+(defun mooerslab-open-new-abibnote-on-citekey ()
   "Open a template file in Org-mode, rename it to the citekey under the cursor,
   and save it to '~/abibNotes/'. Citar has a function that will insert the citekey."
   (interactive)
@@ -1602,7 +1548,7 @@ point relative to the headline with the tag."
 ;%  sudo curl -L https://yt-dl.org/downloads/latest/youtube-dl -o /usr/local/bin/youtube-dl
 ;%  sudo chmod a+rx /usr/local/bin/youtube-dl
 ;;;; play-youtube-video
-(defun ml/play-youtube-video (url)
+(defun mooerslab-play-youtube-video (url)
   "Play a YouTube video with mpv."
   (interactive "sYouTube URL: ")
   (start-process "mpv" nil "mpv" URL))
@@ -1612,42 +1558,42 @@ point relative to the headline with the tag."
 
 
 ;;; Reload the initialization file after editing it in Emacs
-(defun ml/reload-init-e30f ()
+(defun mooerslab-reload-init-e30f ()
   "Reload the init.el file for e30fewpacakges. Edit the path to suit your needs."
   (interactive)
   (load-file "~/e30fewpackages/init.el"))
 
 
 ;;; Open the init.el file for editing.
-(defun ml/open-init-e30f ()
+(defun mooerslab-open-init-e30f ()
   "Open the init.el file for editing. Edit the path to suit your needs."
   (interactive)
   (find-file "~/e30fewpackages/init.el"))
 
 
 ;;; Open the init.el file for editing.
-(defun ml/open-mooerslab-functions ()
+(defun mooerslab-open-mooerslab-functions ()
   "Open the init.el file for editing. Edit the path to suit your needs."
   (interactive)
   (find-file "~/6112MooersLabGitHubLabRepos/mooerslab-functions-el/mooerslab-functions.el"))
 
 
 ;;; Reload the my-hydras file after editing it in Emacs.
-(defun ml/reload-my-hydras ()
+(defun mooerslab-reload-my-hydras ()
     "Reload my-hydras.el. Edit the path to suit your needs."
     (interactive)
     (load-file "~/e30fewpackages/my-hydras/my-hydras.el"))
 
 
 ;;; Open the init.el my-hydras for editing.
-(defun ml/open-my-hydras ()
+(defun mooerslab-open-my-hydras ()
   "Open the init.el file for editing. Edit the path to suit your needs."
   (interactive)
   (find-file "~/e30fewpackages/my-hydras/my-hydras.el"))
 
 
 ;;; Spawn a new shell with the supplied title
-(defun ml/spawn-shell (name)
+(defun mooerslab-spawn-shell (name)
   "Invoke shell test"
   (interactive "MName of shell buffer to create: ")
   (pop-to-buffer (get-buffer-create (generate-new-buffer-name name)))
@@ -1657,7 +1603,7 @@ point relative to the headline with the tag."
 
 ;;; Split long lines into one line per sentence.
 ;% The function is priceless when working with transripts from whisper-file.
-(defun ml/split-sentences-into-lines (start end)
+(defun mooerslab-split-sentences-into-lines (start end)
   "Move each sentence in the region to its own line, ignoring common titles and abbreviations."
   (interactive "r")
   (save-excursion
@@ -1680,11 +1626,11 @@ point relative to the headline with the tag."
         (replace-match ".")))))
 
 ;; Bind the function to a key combination
-(global-set-key (kbd "C-c s") 'ml/split-sentences-into-lines)
+(global-set-key (kbd "C-c s") 'mooerslab-split-sentences-into-lines)
 
 
 
-; (defun ml/org-unordered-list-to-latex-itemized-list ()
+; (defun mooerslab-org-unordered-list-to-latex-itemized-list ()
 ;   "Convert org-mode unordered list at point to LaTeX itemized list."
 ; Busted due to beg in org-mode
 ;   (interactive)
@@ -1713,7 +1659,7 @@ point relative to the headline with the tag."
           
 ;; ;;; widen-frame to the right. Enter period have first issue.
 ;; ;% Redundant with built-in commands.
-;; (defun ml/widen-frame ()
+;; (defun mooerslab-widen-frame ()
 ;;   "Increase the width of the current frame by 10 columns."
 ;;   (interactive)
 ;;   (set-frame-width (selected-frame) (+ (frame-width) 10)))
@@ -1721,7 +1667,7 @@ point relative to the headline with the tag."
 
 
 ;; ;; narrow-frame. Enter period have first issue.
-;; (defun ml/narrow-frame ()
+;; (defun mooerslab-narrow-frame ()
 ;;   "Reduce the width of the current frame by 10 columns."
 ;;   (interactive)
 ;;   (set-frame-width (selected-frame) (- (frame-width) 10)))
@@ -1761,4 +1707,4 @@ point relative to the headline with the tag."
 ; (with-eval-after-load 'pdb-mode
 ;   (define-key pdb-mode-map (kbd "C-c t") 'pdb-transient-menu)))
 
-(provide 'mooerslab-functions)
+(provide 'mooerslab)
