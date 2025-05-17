@@ -13,7 +13,7 @@
 ;;; This package is known to work (insofar as it's tested) with Emacs 30.1.
 
 (defun mooerslab-org-list-package-functions ()
-  "Returns in a new buffer a dashed org-mode list of all functions in a package.
+  "Return a dashed org-mode list of all functions in a package.
    Prompts the user for a package name in the minibuffer."
   (interactive)
   (let* ((package-name (intern (completing-read "Package name: " 
@@ -40,8 +40,7 @@
           (insert (format "- %s\n" func)))
       (insert "- No functions found in this package\n"))
 
-    ;; Align and indent the list properly
-    (org-list-indent-item-generic 0 t)
+    ;; No need for org-list-indent-item-generic, as the list is already properly formatted
 
     ;; Return to the beginning of the buffer
     (goto-char (point-min))
@@ -49,7 +48,6 @@
     ;; Message to user
     (message "Created org-mode list of %d functions in package %s" 
              (length functions-list) package-name)))
-
 
 (defun mooerslab-format-authors-in-region (begin end)
   "Format author names in region from 'First M.N. Last' to 'Last, F.M.N.'
