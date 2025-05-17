@@ -1,4 +1,4 @@
-![Version](https://img.shields.io/static/v1?label=matplotlib-voice-in&message=0.6&color=brightcolor)
+![Version](https://img.shields.io/static/v1?label=mooerslab-functions-el&message=0.6&color=brightcolor)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](https://opensource.org/licenses/MIT)
 
 
