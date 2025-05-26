@@ -50,6 +50,83 @@
              (length functions-list) package-name)))
 
 
+(defun mooerslab-org-dash-list-to-latex-items ()
+  "Convert org-mode dash list in current region or buffer to LaTeX \\item format."
+  (interactive)
+  (let ((start (if (use-region-p) (region-beginning) (point-min)))
+        (end (if (use-region-p) (region-end) (point-max))))
+    (save-excursion
+      (goto-char start)
+      (while (re-search-forward "^\\s-*- \\(.*\\)$" end t)
+        (replace-match "    \\\\item \\1")
+        (setq end (+ end (- (length "    \\\\item ") (length "- "))))))))
+
+
+;; Enhanced version with more options
+(defun mooerslab-org-dash-list-to-latex-items-enhanced (item-format)
+  "Convert org-mode dash list to LaTeX items with custom formatting.
+ITEM-FORMAT should be a string like '\\\\item' or '\\\\item \\\\textbf{%s}'."
+  (interactive "sItem format (use %s for content): ")
+  (let ((start (if (use-region-p) (region-beginning) (point-min)))
+        (end (if (use-region-p) (region-end) (point-max)))
+        (format-str (if (string-match "%s" item-format)
+                        item-format
+                      (concat item-format " %s"))))
+    (save-excursion
+      (goto-char start)
+      (while (re-search-forward "^\\s-*- \\(.*\\)$" end t)
+        (let* ((content (match-string 1))
+               (replacement (format format-str content)))
+          (replace-match (concat "    " replacement))
+          (setq end (+ end (- (length replacement) (length content) 1))))))))
+
+
+;; Convert with full LaTeX environment wrapper
+(defun mooerslab-org-dash-list-to-latex-itemize ()
+  "Convert org-mode dash list to complete LaTeX itemize environment."
+  (interactive)
+  (let ((start (if (use-region-p) (region-beginning) (point-min)))
+        (end (if (use-region-p) (region-end) (point-max)))
+        (items '()))
+    (save-excursion
+      (goto-char start)
+      (while (re-search-forward "^\\s-*- \\(.*\\)$" end t)
+        (push (match-string 1) items)))
+    (when items
+      (delete-region start end)
+      (goto-char start)
+      (insert "#+BEGIN_EXPORT latex\n")
+      (insert "\\begin{itemize}\n")
+      (dolist (item (reverse items))
+        (insert (format "    \\item %s\n" item)))
+      (insert "\\end{itemize}\n")
+      (insert "#+END_EXPORT\n"))))
+
+
+;; Convert with your specific bullet style
+(defun mooerslab-org-dash-list-to-custom-latex ()
+  "Convert org-mode dash list to LaTeX with custom bullet formatting for beamer slideshows."
+  (interactive)
+  (let ((start (if (use-region-p) (region-beginning) (point-min)))
+        (end (if (use-region-p) (region-end) (point-max)))
+        (items '()))
+    (save-excursion
+      (goto-char start)
+      (while (re-search-forward "^\\s-*- \\(.*\\)$" end t)
+        (push (match-string 1) items)))
+    (when items
+      (delete-region start end)
+      (goto-char start)
+      (insert "#+BEGIN_EXPORT latex\n")
+      (insert "\\Large{\n")
+      (insert "\\begin{itemize}[font=$\\bullet$\\scshape\\bfseries]\n")
+      (dolist (item (reverse items))
+        (insert (format "    \\item %s\n" item)))
+      (insert "\\end{itemize}\n")
+      (insert "}\n")
+      (insert "#+END_EXPORT\n"))))
+
+
 (defun mooerslab-github-markdown-table-package-functions ()
   "Create a GitHub markdown table of all functions in a package and their docstrings.
    Prompts the user for a package name in the minibuffer and ensures proper text formatting
@@ -209,7 +286,8 @@ This is very useful during the preparation of grant progress reports and bibtex 
 
 (defun mooerslab-wrap-citar-citekey-and-create-abibnote-org ()
     "Replace the citekey under the cursor with LaTeX-wrapped text and create a 
-    corresponding empty citekey.org file in abibNotes folder in the home directory. 
+    corresponding empty citekey.org file in abibNotes folder in the home directory.
+    Will work with citekeys in citar style or in LaTeX style or plain naked citekeys.
     The LaTeX code uses the bibentry package to inject a bibliographic entry into 
     a section heading that is added in the table of contents. The function still
     fails to automatically deduce the local bib file. To compensate, you are prompted
