@@ -12,6 +12,45 @@
 
 ;;; This package is known to work (insofar as it's tested) with Emacs 30.1.
 
+(defun mooerslab-replace-first-column-with-echo-region (start end)
+  "Replace the first column in region with 'echo \"' + rest of column (minus first char).
+For example: 'data1 value1' becomes 'echo \"ata1 value1'. Thus is a very common operation 
+that is normally handled in three steps starting with making a rectangular selection and 
+then replacing this selection."
+  (interactive "r")
+  (save-excursion
+    (goto-char start)
+    (while (< (point) end)
+      (let ((line-start (point)))
+        ;; Skip empty lines
+        (unless (looking-at-p "^\\s-*$")
+          ;; Find the end of the first column (first whitespace)
+          (skip-chars-forward "^ \t\n")
+          (let* ((col-end (point))
+                 (col-text (buffer-substring-no-properties line-start col-end))
+                 (col-rest (if (> (length col-text) 1)
+                              (substring col-text 1)
+                            "")))
+            ;; Delete the first column
+            (delete-region line-start col-end)
+            ;; Insert the replacement
+            (insert (concat "echo \"" col-rest)))))
+      ;; Move to next line
+      (forward-line 1))))
+
+
+(defun mooerslab-insert-quote-at-end-of-lines (start end)
+  "Insert a double quote character at the end of each line in the selected region.
+  This is often needed to close a quoted string."
+  (interactive "r")
+  (save-excursion
+    (goto-char start)
+    (while (< (point) end)
+      (end-of-line)
+      (insert "\"")
+      (forward-line 1))))
+
+
 (defun mooerslab-org-list-package-functions ()
   "Return a dashed org-mode list of all functions in a package.
    Prompts the user for a package name in the minibuffer."
