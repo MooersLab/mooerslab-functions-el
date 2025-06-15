@@ -4,7 +4,7 @@
 
 # Library of home-made Emacs Lisp functions
 
-This is a library of homemade functions to customize Emacs to fit my workflow with Emacs 30.1 on Mac OSX.
+This is a library of custom functions designed to tailor Emacs to my workflow, using Emacs 30.1 on macOS.
 
 
 
@@ -14,7 +14,7 @@ Add this to your `init.el` file and reload Emacs or evaluate in the scratch buff
 Straight will `git clone` this repo and store it in the `repos` subfolder of your `.emacs.d` folder.
 
 ```elisp
-(use-package mooerslab-functions  
+(use-package mooerslab  
   :straight  
   '(:type git  
     :repo "https://github.com/MooersLab/mooerslab-functions-el.git"  
