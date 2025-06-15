@@ -1,4 +1,4 @@
-;;; mooerslab-functions.el --- A collection of utility functions to improve our workflows.
+;;; mooerslab.el --- A collection of utility functions to improve our workflows.
 
 ;; Copyright (C) 2025 Blaine Mooers and the University of Oklahoma Health Sciences Center Board of Regents
 
