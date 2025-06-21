@@ -27,14 +27,14 @@
 
 ;; Advise the doi-utils function to add the file field after creating an entry
 (with-eval-after-load 'doi-utils
-  (defun my/doi-utils-add-file-field (orig-fun &rest args)
+  (defun mooerslab-doi-utils-add-file-field (orig-fun &rest args)
     "Advice function that adds a file field after adding a BibTeX entry."
     (let ((result (apply orig-fun args)))
       (mooerslab-bibtex-add-file-field-to-entry)
       result))
 
   (advice-add 'doi-utils-add-bibtex-entry-from-doi
-              :around #'my/doi-utils-add-file-field))
+              :around #'mooerslab-doi-utils-add-file-field))
 
 
 (defun mooerslab-replace-first-column-with-echo-region (start end)
