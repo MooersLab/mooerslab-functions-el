@@ -18,7 +18,7 @@ Straight will `git clone` this repo and store it in the `repos` subfolder of you
   :straight  
   '(:type git  
     :repo "https://github.com/MooersLab/mooerslab-functions-el.git"  
-    :files ("mooerslab-functions.el")))
+    :files ("mooerslab.el")))
 ```
 The functions will always be available.
 There will be no need to use the `mooerslab-functions-load ()` function below.
