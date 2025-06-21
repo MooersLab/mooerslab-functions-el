@@ -12,6 +12,31 @@
 
 ;;; This package is known to work (insofar as it's tested) with Emacs 30.1.
 
+
+(defun mooerslab-bibtex-add-file-field-to-entry ()
+  "Add a file field to the current BibTeX entry based on its citation key."
+  (interactive)
+  (bibtex-beginning-of-entry)
+  (let* ((key (bibtex-key-in-head))
+         (file-field (format ":%s.pdf:PDF" key)))
+    (if (not (bibtex-search-forward-field "file" t))
+        (save-excursion
+          (bibtex-end-of-entry)
+          (backward-char 1)  ;; Move before the closing brace
+          (insert "  file = {" file-field "}")))))
+
+;; Advise the doi-utils function to add the file field after creating an entry
+(with-eval-after-load 'doi-utils
+  (defun my/doi-utils-add-file-field (orig-fun &rest args)
+    "Advice function that adds a file field after adding a BibTeX entry."
+    (let ((result (apply orig-fun args)))
+      (mooerslab-bibtex-add-file-field-to-entry)
+      result))
+
+  (advice-add 'doi-utils-add-bibtex-entry-from-doi
+              :around #'my/doi-utils-add-file-field))
+
+
 (defun mooerslab-replace-first-column-with-echo-region (start end)
   "Replace the first column in region with 'echo \"' + rest of column (minus first char).
 For example: 'data1 value1' becomes 'echo \"ata1 value1'. Thus is a very common operation 
