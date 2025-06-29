@@ -12,9 +12,47 @@
 
 ;;; This package is known to work (insofar as it's tested) with Emacs 30.1.
 
+(defun mooerslab-wrap-book-pdf-filename-prefixes-as-org-links (beg end)
+  "Transform a selection of book PDF filenames into org-mode links.
+Each line in the region from BEG to END should contain a PDF filename without the extension pdf.
+This function will transform each line into an org-mode link pointing to
+~/0booksLabeled/filename.pdf."
+  (interactive "r")  ; r means use the current region
+  (save-excursion
+    (save-restriction
+      (narrow-to-region beg end)
+      (goto-char (point-min))
+      (while (not (eobp))  ; eobp = end of buffer predicate
+        (beginning-of-line)
+        (insert "- [[file:~/0booksLabeled/")
+        (end-of-line)
+        (insert ".pdf]]")
+        (forward-line 1)))))
+
+(defun mooerslab-wrap-article-pdf-filename-prefixes-as-org-links (beg end)
+  "Transform a selection of article PDF filenames into org-mode links.
+Each line in the region from BEG to END should contain a PDF filename without the extension pdf.
+This function will transform each line into an org-mode link pointing to
+~/0papersLabeled/filename.pdf."
+  (interactive "r")  ; r means use the current region
+  (save-excursion
+    (save-restriction
+      (narrow-to-region beg end)
+      (goto-char (point-min))
+      (while (not (eobp))  ; eobp = end of buffer predicate
+        (beginning-of-line)
+        (insert "- [[file:~/0papersLabeled/")
+        (end-of-line)
+        (insert ".pdf]]")
+        (forward-line 1)))))
 
 (defun mooerslab-bibtex-add-file-field-to-entry ()
-  "Add a file field to the current BibTeX entry based on its citation key."
+  "Add a PDF file field to the current BibTeX entry when it is being generate after submission of the article's DOI. 
+  The file will be renamed using the citation key.
+  The file is stored in ~/0papersLabeled. 
+  This desitnation for PDFs is set in the init.el.
+  The file entry will be made even if the PDF was not automatically downloaded.
+  You can add the PDF to your collection manually in this sitution."
   (interactive)
   (bibtex-beginning-of-entry)
   (let* ((key (bibtex-key-in-head))
