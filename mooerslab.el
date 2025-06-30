@@ -391,9 +391,8 @@ This is very useful during the preparation of grant progress reports and bibtex 
     corresponding empty citekey.org file in abibNotes folder in the home directory.
     Will work with citekeys in citar style or in LaTeX style or plain naked citekeys.
     The LaTeX code uses the bibentry package to inject a bibliographic entry into 
-    a section heading that is added in the table of contents. The function still
-    fails to automatically deduce the local bib file. To compensate, you are prompted
-    for the project number. Because it is not automatic, this functin is alpha."
+    a section heading that is added in the table of contents. The function also adds
+    file links to the PDF and org note files for quick access."
 
     (interactive)
     (let* ((bounds (or (save-excursion
@@ -410,11 +409,11 @@ This is very useful during the preparation of grant progress reports and bibtex 
                     (if (string-match "\\[cite:@\\([^]]+\\)\\]" citation-text)
                         (match-string 1 citation-text)
                       citation-text))) ;; Plain word if not a citation
-  
+
          ;; Extract directory from current buffer filename
          (current-file (buffer-file-name))
          (current-dir (when current-file (file-name-directory current-file)))
-  
+
          ;; Try to determine default project number from filename
          (default-project-number 
           (cond 
@@ -422,32 +421,36 @@ This is very useful during the preparation of grant progress reports and bibtex 
            ((and current-file 
                  (string-match "ab\\([0-9]+\\).org" (file-name-nondirectory current-file)))
             (match-string 1 current-file))
-     
+
            ;; Look for "2156" in the buffer file name
            ((and current-file 
                  (string-match "\\([0-9]+\\)" (file-name-nondirectory current-file)))
             (match-string 1 current-file))
-     
+
            ;; Default to empty string
            (t "")))
-  
+
          ;; Prompt the user for project number with default from filename
          (project-number (read-string (format "Project number for BibTeX file [%s]: " 
                                              default-project-number)
                                      nil nil default-project-number))
-  
+
          ;; Construct file paths
          (bib-file-name (concat "ab" project-number ".bib"))
          (bib-file-path (and current-dir (concat current-dir bib-file-name)))
          (org-file-dir "/Users/blaine/abibNotes/") ;; Directory for the .org file
          (org-file-path (and citekey (concat org-file-dir citekey ".org"))) ;; Full path for the .org file
-         (wrapped-text (and citekey (format "#+LATEX: \\subsubsection*{\\bibentry{%s}}\n#+LATEX: \\addcontentsline{toc}{subsubsection}{%s}\n#+INCLUDE: %s"
-                                          citekey citekey org-file-path))))
+         (pdf-file-path (and citekey (concat "~/0papersLabeled/" citekey ".pdf"))) ;; PDF file path
+ 
+         ;; Updated wrapped text with file links
+         (wrapped-text (and citekey 
+                           (format "#+LATEX: \\subsubsection*{\\bibentry{%s}}\n#+LATEX: \\addcontentsline{toc}{subsubsection}{%s}\n#+INCLUDE: %s\nfile:~/abibNotes/%s.org\nfile:~/0papersLabeled/%s.pdf"
+                                  citekey citekey org-file-path citekey citekey))))
 
     ;; Debug message to check file paths
     (message "Using bibfile: %s" bib-file-path)
 
-    (if (not citekey)
+    (if (not citekey)–
         (message "No citekey found under the cursor.")
       (progn
         ;; Delete the citation or word at cursor
@@ -455,20 +458,20 @@ This is very useful during the preparation of grant progress reports and bibtex 
           (delete-region (car bounds) (cdr bounds)))
         ;; Insert the wrapped text in its place
         (insert wrapped-text)
- 
+
         ;; Create a minimal .org file if it doesn't already exist - no header, no headline
         (if (file-exists-p org-file-path)
             (message "File %s already exists." org-file-path)
           (with-temp-file org-file-path
             (insert ""))) ;; Empty file
- 
+
         ;; Append the BibTeX entry to the project-specific .bib file in current directory
         (require 'bibtex)
         (when (and (featurep 'citar) current-dir bib-file-path)  ;; Ensure we have all required paths
           ;; Get the bibtex entry using search in citar bibliography files
           (let* ((bib-files (citar--bibliography-files))
                  (bibtex-entry nil))
-     
+
             ;; Look through each bibliography file for the entry
             (when bib-files
               (catch 'found
@@ -487,7 +490,7 @@ This is very useful during the preparation of grant progress reports and bibtex 
                                    (point))))
                         (setq bibtex-entry (buffer-substring-no-properties beg end))
                         (throw 'found t)))))))
-     
+
             (if bibtex-entry
                 (progn
                   ;; Now append to the bib file
@@ -499,12 +502,10 @@ This is very useful during the preparation of grant progress reports and bibtex 
                     (insert bibtex-entry "\n\n"))
                   (message "Added BibTeX entry to %s" bib-file-path))
               (message "Could not retrieve BibTeX entry for %s" citekey))))
- 
+
         ;; Open the .org file in a new buffer
         (find-file org-file-path)
         (message "Replaced citekey, created .org file, and opened it: %s" org-file-path)))))
-
-
 
 
 
