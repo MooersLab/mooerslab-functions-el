@@ -386,13 +386,14 @@ This is very useful during the preparation of grant progress reports and bibtex 
 (eval-after-load 'tex-mode
        '(define-key Latex-mode-map (kbd "C-c w p") 'insert-main-index-entry))
 
+
 (defun mooerslab-wrap-citar-citekey-and-create-abibnote-org ()
     "Replace the citekey under the cursor with LaTeX-wrapped text and create a 
     corresponding empty citekey.org file in abibNotes folder in the home directory.
     Will work with citekeys in citar style or in LaTeX style or plain naked citekeys.
     The LaTeX code uses the bibentry package to inject a bibliographic entry into 
     a section heading that is added in the table of contents. The function also adds
-    file links to the PDF and org note files for quick access."
+    file links to the PDF and org note files in a comment block for quick access."
 
     (interactive)
     (let* ((bounds (or (save-excursion
@@ -440,17 +441,16 @@ This is very useful during the preparation of grant progress reports and bibtex 
          (bib-file-path (and current-dir (concat current-dir bib-file-name)))
          (org-file-dir "/Users/blaine/abibNotes/") ;; Directory for the .org file
          (org-file-path (and citekey (concat org-file-dir citekey ".org"))) ;; Full path for the .org file
-         (pdf-file-path (and citekey (concat "~/0papersLabeled/" citekey ".pdf"))) ;; PDF file path
- 
-         ;; Updated wrapped text with file links
+  
+         ;; Updated wrapped text with file links inside a comment block
          (wrapped-text (and citekey 
-                           (format "#+LATEX: \\subsubsection*{\\bibentry{%s}}\n#+LATEX: \\addcontentsline{toc}{subsubsection}{%s}\n#+INCLUDE: %s\nfile:~/abibNotes/%s.org\nfile:~/0papersLabeled/%s.pdf"
+                           (format "#+LATEX: \\subsubsection*{\\bibentry{%s}}\n#+LATEX: \\addcontentsline{toc}{subsubsection}{%s}\n#+INCLUDE: %s\n#+BEGIN_COMMENT\nfile:~/abibNotes/%s.org\nfile:~/0papersLabeled/%s.pdf\n#+END_COMMENT"
                                   citekey citekey org-file-path citekey citekey))))
 
     ;; Debug message to check file paths
     (message "Using bibfile: %s" bib-file-path)
 
-    (if (not citekey)–
+    (if (not citekey)
         (message "No citekey found under the cursor.")
       (progn
         ;; Delete the citation or word at cursor
@@ -505,8 +505,7 @@ This is very useful during the preparation of grant progress reports and bibtex 
 
         ;; Open the .org file in a new buffer
         (find-file org-file-path)
-        (message "Replaced citekey, created .org file, and opened it: %s" org-file-path)))))
-
+        (message "Replaced citekey, created .org file, and opened it: %s" org-file-path)))))––±≠≠±
 
 
 (defun mooerslab-convert-org-checklist-to-dash-list (begin end)  
