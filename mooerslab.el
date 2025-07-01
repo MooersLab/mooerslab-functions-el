@@ -387,7 +387,135 @@ This is very useful during the preparation of grant progress reports and bibtex 
        '(define-key Latex-mode-map (kbd "C-c w p") 'insert-main-index-entry))
 
 
-(defun mooerslab-wrap-citar-citekey-and-create-abibnote-org ()
+(defun mooerslab-mab-wrap-citar-citekey-and-create-abibnote-org ()
+  "Replace the citekey under the cursor with LaTeX-wrapped text and create a 
+   corresponding empty citekey.org file in abibNotes folder in the home directory.
+   Will work with citekeys in citar style or in LaTeX style or plain naked citekeys.
+   The LaTeX code uses the bibentry package to inject a bibliographic entry into 
+   a section heading that is added in the table of contents. The function also adds
+   file links to the PDF and org note files in a Notes drawer for quick access."
+
+  (interactive)
+  (let* ((bounds (or (save-excursion
+                      ;; Check if we're inside a citation
+                      (let ((start (re-search-backward "\\[cite:@" (line-beginning-position) t))
+                            (end (re-search-forward "\\]" (line-end-position) t)))
+                        (when (and start end)
+                          (cons start end))))
+                    ;; Otherwise just get the word at point
+                    (bounds-of-thing-at-point 'word)))
+         (citation-text (when bounds 
+                          (buffer-substring-no-properties (car bounds) (cdr bounds))))
+         (citekey (when citation-text
+                    (if (string-match "\\[cite:@\\([^]]+\\)\\]" citation-text)
+                        (match-string 1 citation-text)
+                      citation-text))) ;; Plain word if not a citation
+
+         ;; Extract directory from current buffer filename
+         (current-file (buffer-file-name))
+         (current-dir (when current-file (file-name-directory current-file)))
+
+         ;; Try to determine default project number from filename
+         (default-project-number 
+          (cond 
+           ;; First try to find "ab2156" pattern in the buffer file name
+           ((and current-file 
+                 (string-match "ab\\([0-9]+\\).org" (file-name-nondirectory current-file)))
+            (match-string 1 current-file))
+
+           ;; Look for "2156" in the buffer file name
+           ((and current-file 
+                 (string-match "\\([0-9]+\\)" (file-name-nondirectory current-file)))
+            (match-string 1 current-file))
+
+           ;; Default to empty string
+           (t "")))
+
+         ;; Prompt the user for project number with default from filename
+         (project-number (read-string (format "Project number for BibTeX file [%s]: " 
+                                             default-project-number)
+                                     nil nil default-project-number))
+
+         ;; Construct file paths
+         (mab-dir (concat "mab" project-number "/")) ;; New mab subfolder
+         (mab-full-dir (and current-dir (concat current-dir mab-dir)))
+         (bib-file-name (concat "mab" project-number ".bib"))
+         (bib-file-path (and mab-full-dir (concat mab-full-dir bib-file-name)))
+         (org-file-dir "/Users/blaine/abibNotes/") ;; Directory for the .org file
+         (org-file-path (and citekey (concat org-file-dir citekey ".org"))) ;; Full path for the .org file
+  
+         ;; Updated wrapped text with file links inside a Notes drawer instead of COMMENT block
+         (wrapped-text (and citekey 
+                           (format "#+LATEX: \\subsubsection*{\\bibentry{%s}}\n#+LATEX: \\addcontentsline{toc}{subsubsection}{%s}\n#+INCLUDE: %s\n:Notes:\nfile:~/abibNotes/%s.org\nfile:~/0papersLabeled/%s.pdf\nAdd more prose. Add tables. Add figures.\n:END:"
+                                  citekey citekey org-file-path citekey citekey))))
+
+    ;; Debug message to check file paths
+    (message "Using bibfile: %s" bib-file-path)
+
+    (if (not citekey)
+        (message "No citekey found under the cursor.")
+      (progn
+        ;; Delete the citation or word at cursor
+        (when bounds
+          (delete-region (car bounds) (cdr bounds)))
+        ;; Insert the wrapped text in its place
+        (insert wrapped-text)
+
+        ;; Create a minimal .org file if it doesn't already exist - no header, no headline
+        (if (file-exists-p org-file-path)
+            (message "File %s already exists." org-file-path)
+          (with-temp-file org-file-path
+            (insert ""))) ;; Empty file
+
+        ;; Create mab directory if it doesn't exist
+        (when (and mab-full-dir (not (file-exists-p mab-full-dir)))
+          (make-directory mab-full-dir t)
+          (message "Created directory %s" mab-full-dir))
+
+        ;; Append the BibTeX entry to the project-specific .bib file in mab subfolder
+        (require 'bibtex)
+        (when (and (featurep 'citar) mab-full-dir bib-file-path)  ;; Ensure we have all required paths
+          ;; Get the bibtex entry using search in citar bibliography files
+          (let* ((bib-files (citar--bibliography-files))
+                 (bibtex-entry nil))
+
+            ;; Look through each bibliography file for the entry
+            (when bib-files
+              (catch 'found
+                (dolist (bib-file bib-files)
+                  (with-temp-buffer
+                    (insert-file-contents bib-file)
+                    (bibtex-mode)
+                    (bibtex-set-dialect 'BibTeX t)
+                    (goto-char (point-min))
+                    (when (re-search-forward (format "@[^{]+{%s," citekey) nil t)
+                      (let ((beg (save-excursion 
+                                   (bibtex-beginning-of-entry)
+                                   (point)))
+                            (end (save-excursion
+                                   (bibtex-end-of-entry)
+                                   (point))))
+                        (setq bibtex-entry (buffer-substring-no-properties beg end))
+                        (throw 'found t)))))))
+
+            (if bibtex-entry
+                (progn
+                  ;; Now append to the bib file
+                  (with-temp-file bib-file-path
+                    (when (file-exists-p bib-file-path)
+                      (insert-file-contents bib-file-path))
+                    (goto-char (point-max))
+                    (unless (or (bobp) (bolp)) (insert "\n"))
+                    (insert bibtex-entry "\n\n"))
+                  (message "Added BibTeX entry to %s" bib-file-path))
+              (message "Could not retrieve BibTeX entry for %s" citekey))))
+
+        ;; Open the .org file in a new buffer
+        (find-file org-file-path)
+        (message "Replaced citekey, created .org file, and opened it: %s" org-file-path)))))
+
+
+(defun mooerslab-abib-wrap-citar-citekey-and-create-abibnote-org ()
     "Replace the citekey under the cursor with LaTeX-wrapped text and create a 
     corresponding empty citekey.org file in abibNotes folder in the home directory.
     Will work with citekeys in citar style or in LaTeX style or plain naked citekeys.
@@ -505,7 +633,7 @@ This is very useful during the preparation of grant progress reports and bibtex 
 
         ;; Open the .org file in a new buffer
         (find-file org-file-path)
-        (message "Replaced citekey, created .org file, and opened it: %s" org-file-path)))))––±≠≠±
+        (message "Replaced citekey, created .org file, and opened it: %s" org-file-path)))))
 
 
 (defun mooerslab-convert-org-checklist-to-dash-list (begin end)  
