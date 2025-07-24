@@ -1,3 +1,5 @@
+;;; Commentary:
+
 ;;; mooerslab.el --- A collection of utility functions to improve our workflows.
 
 ;; Copyright (C) 2025 Blaine Mooers and the University of Oklahoma Health Sciences Center Board of Regents
@@ -11,6 +13,8 @@
 ;; Updated 2025 May 17
 
 ;;; This package is known to work (insofar as it's tested) with Emacs 30.1.
+
+;;; Code:
 
 (defun mooerslab-wrap-book-pdf-filename-prefixes-as-org-links (beg end)
   "Transform a selection of book PDF filenames into org-mode links.
@@ -47,9 +51,9 @@ This function will transform each line into an org-mode link pointing to
         (forward-line 1)))))
 
 (defun mooerslab-bibtex-add-file-field-to-entry ()
-  "Add a PDF file field to the current BibTeX entry when it is being generate after submission of the article's DOI. 
+  "Add a PDF file field to the current BibTeX entry when it is being generate after submission of the article's DOI.
   The file will be renamed using the citation key.
-  The file is stored in ~/0papersLabeled. 
+  The file is stored in ~/0papersLabeled.
   This desitnation for PDFs is set in the init.el.
   The file entry will be made even if the PDF was not automatically downloaded.
   You can add the PDF to your collection manually in this sitution."
@@ -77,8 +81,8 @@ This function will transform each line into an org-mode link pointing to
 
 (defun mooerslab-replace-first-column-with-echo-region (start end)
   "Replace the first column in region with 'echo \"' + rest of column (minus first char).
-For example: 'data1 value1' becomes 'echo \"ata1 value1'. Thus is a very common operation 
-that is normally handled in three steps starting with making a rectangular selection and 
+For example: 'data1 value1' becomes 'echo \"ata1 value1'. Thus is a very common operation
+that is normally handled in three steps starting with making a rectangular selection and
 then replacing this selection."
   (interactive "r")
   (save-excursion
@@ -118,14 +122,14 @@ then replacing this selection."
   "Return a dashed org-mode list of all functions in a package.
    Prompts the user for a package name in the minibuffer."
   (interactive)
-  (let* ((package-name (intern (completing-read "Package name: " 
+  (let* ((package-name (intern (completing-read "Package name: "
                                                (mapcar #'symbol-name features))))
          (package-symbols (apropos-internal (concat "^" (symbol-name package-name) "-") 'fboundp))
          (buffer (get-buffer-create (format "*%s-functions*" package-name)))
          (functions-list))
 
     ;; Create list of function symbols in the package
-    (setq functions-list 
+    (setq functions-list
           (sort (mapcar #'symbol-name package-symbols) #'string<))
 
     ;; Switch to the output buffer
@@ -148,7 +152,7 @@ then replacing this selection."
     (goto-char (point-min))
 
     ;; Message to user
-    (message "Created org-mode list of %d functions in package %s" 
+    (message "Created org-mode list of %d functions in package %s"
              (length functions-list) package-name)))
 
 
@@ -234,15 +238,15 @@ ITEM-FORMAT should be a string like '\\\\item' or '\\\\item \\\\textbf{%s}'."
    Prompts the user for a package name in the minibuffer and ensures proper text formatting
    without excessive spaces between letters in the output."
   (interactive)
-  (let* ((package-name (intern (completing-read "Package name: " 
+  (let* ((package-name (intern (completing-read "Package name: "
                                                (mapcar #'symbol-name features))))
          (package-symbols (apropos-internal (concat "^" (symbol-name package-name) "-") 'fboundp))
          (buffer (get-buffer-create (format "*%s-functions-markdown*" package-name)))
          (functions-list))
 
     ;; Create list of function symbols in the package
-    (setq functions-list 
-          (sort package-symbols #'(lambda (a b) 
+    (setq functions-list
+          (sort package-symbols #'(lambda (a b)
                                    (string< (symbol-name a) (symbol-name b)))))
 
     ;; Switch to the output buffer
@@ -278,7 +282,7 @@ ITEM-FORMAT should be a string like '\\\\item' or '\\\\item \\\\textbf{%s}'."
     (goto-char (point-min))
 
     ;; Message to user
-    (message "Created GitHub markdown table of %d functions in package %s" 
+    (message "Created GitHub markdown table of %d functions in package %s"
              (length functions-list) package-name)))
 
 
@@ -299,45 +303,45 @@ This is very useful during the preparation of grant progress reports and bibtex 
     (let* ((text (buffer-substring-no-properties begin end))
            (authors (split-string text "," t "[ \t\n\r]+"))
            (formatted-list '()))
-  
+
       ;; Process each author
       (dolist (author authors)
         (let* ((parts (split-string (string-trim author) "[ \t]+" t))
                (last-name (car (last parts)))
                (first-names (butlast parts))
                (initials ""))
-      
+
           ;; Process each first/middle name or initial
           (dolist (name first-names)
             (cond
              ;; Case 1: Already dotted initials (like "H.M.")
              ((string-match-p "\\." name)
               (let* ((split-initials (split-string name "\\." t))
-                     (cleaned-initials 
+                     (cleaned-initials
                       (mapcar (lambda (i) (concat i ".")) split-initials)))
-                (setq initials (concat initials 
+                (setq initials (concat initials
                                       (mapconcat 'identity cleaned-initials "")))))
-         
+
              ;; Case 2: Single letter (already an initial)
              ((= (length name) 1)
               (setq initials (concat initials name ".")))
-         
+
              ;; Case 3: Full name (First letter capital, rest lowercase)
              ((string-match-p "^[A-Z][a-z]+$" name)
               (setq initials (concat initials (substring name 0 1) ".")))
-         
+
              ;; Case 4: Multiple uppercase letters (like "HM")
              ((string-match-p "^[A-Z]+$" name)
               (dolist (c (string-to-list name))
                 (setq initials (concat initials (char-to-string c) "."))))
-         
+
              ;; Case 5: Anything else - just take first letter to be safe
              (t
               (setq initials (concat initials (substring name 0 1) ".")))))
-      
+
           ;; Add formatted name to list
           (push (concat last-name ", " initials) formatted-list)))
-  
+
       ;; Create final result and replace region
       (let ((result (mapconcat 'identity (nreverse formatted-list) ", ")))
         (delete-region begin end)
@@ -348,19 +352,19 @@ This is very useful during the preparation of grant progress reports and bibtex 
 
 ;;; Works with the LaTeX imakeidx package in org-mode, which supports the use of two or more indices. Could work in Autex too.
 (defun mooerslab-insert-main-index-entry ()
-  "Insert a general index entry"
+  "Insert a general index entry."
   (interactive)
   (let ((term (read-string "Index term: ")))
     (insert "\\index[main]{" term "}")))
 
 (defun mooerslab-insert-author-index-entry ()
-  "Insert an author index entry"
+  "Insert an author index entry."
   (interactive)
   (let ((author (read-string "Author (Last, First): ")))
     (insert "\\index[authors]{" author "}")))
 
 (defun mooerslab-insert-prompt-index-entry ()
-  "Insert an writing prompt index entry"
+  "Insert an writing prompt index entry."
   (interactive)
   (let ((prompt (read-string "Writing prompt: ")))
     (insert "\\index[prompt]{" prompt "}")))
@@ -369,7 +373,7 @@ This is very useful during the preparation of grant progress reports and bibtex 
 
 (eval-after-load 'org-mode
       '(define-key org-mode-map (kbd "C-c w a") 'insert-author-index-entry))
-      
+
 (eval-after-load 'org-mode
         '(define-key org-mode-map (kbd "C-c w m") 'insert-main-index-entry))
 
@@ -378,22 +382,22 @@ This is very useful during the preparation of grant progress reports and bibtex 
 
 
 (eval-after-load 'tex-mode
-      '(define-key Latex-mode-map (kbd "C-c w a") 'insert-author-index-entry))
+      '(define-key LaTeX-mode-map (kbd "C-c w a") 'insert-author-index-entry))
 
 (eval-after-load 'tex-mode
-       '(define-key Latex-mode-map (kbd "C-c w m") 'insert-main-index-entry))
+       '(define-key LaTeX-mode-map (kbd "C-c w m") 'insert-main-index-entry))
 
 (eval-after-load 'tex-mode
-       '(define-key Latex-mode-map (kbd "C-c w p") 'insert-main-index-entry))
+       '(define-key LaTeX-mode-map (kbd "C-c w p") 'insert-main-index-entry))
 
 
 (defun mooerslab-mab-wrap-citar-citekey-and-create-abibnote-org ()
-  "Replace the citekey under the cursor with LaTeX-wrapped text and create a 
-   corresponding empty citekey.org file in abibNotes folder in the home directory.
-   Will work with citekeys in citar style or in LaTeX style or plain naked citekeys.
-   The LaTeX code uses the bibentry package to inject a bibliographic entry into 
-   a section heading that is added in the table of contents. The function also adds
-   file links to the PDF and org note files in a Notes drawer for quick access."
+  "Replace the citekey under the cursor with LaTeX-wrapped text and create a
+ corresponding empty citekey.org file in abibNotes folder in the home directory.
+ Will work with citekeys in citar style or in LaTeX style or plain naked citekeys.
+ The LaTeX code uses the bibentry package to inject a bibliographic entry into
+ a section heading that is added in the table of contents. The function also adds
+ file links to the PDF and org note files in a Notes drawer for quick access."
 
   (interactive)
   (let* ((bounds (or (save-excursion
@@ -404,7 +408,7 @@ This is very useful during the preparation of grant progress reports and bibtex 
                           (cons start end))))
                     ;; Otherwise just get the word at point
                     (bounds-of-thing-at-point 'word)))
-         (citation-text (when bounds 
+         (citation-text (when bounds
                           (buffer-substring-no-properties (car bounds) (cdr bounds))))
          (citekey (when citation-text
                     (if (string-match "\\[cite:@\\([^]]+\\)\\]" citation-text)
@@ -416,15 +420,15 @@ This is very useful during the preparation of grant progress reports and bibtex 
          (current-dir (when current-file (file-name-directory current-file)))
 
          ;; Try to determine default project number from filename
-         (default-project-number 
-          (cond 
+         (default-project-number
+          (cond
            ;; First try to find "ab2156" pattern in the buffer file name
-           ((and current-file 
+           ((and current-file
                  (string-match "ab\\([0-9]+\\).org" (file-name-nondirectory current-file)))
             (match-string 1 current-file))
 
            ;; Look for "2156" in the buffer file name
-           ((and current-file 
+           ((and current-file
                  (string-match "\\([0-9]+\\)" (file-name-nondirectory current-file)))
             (match-string 1 current-file))
 
@@ -432,7 +436,7 @@ This is very useful during the preparation of grant progress reports and bibtex 
            (t "")))
 
          ;; Prompt the user for project number with default from filename
-         (project-number (read-string (format "Project number for BibTeX file [%s]: " 
+         (project-number (read-string (format "Project number for BibTeX file [%s]: "
                                              default-project-number)
                                      nil nil default-project-number))
 
@@ -443,9 +447,9 @@ This is very useful during the preparation of grant progress reports and bibtex 
          (bib-file-path (and mab-full-dir (concat mab-full-dir bib-file-name)))
          (org-file-dir "/Users/blaine/abibNotes/") ;; Directory for the .org file
          (org-file-path (and citekey (concat org-file-dir citekey ".org"))) ;; Full path for the .org file
-  
+
          ;; Updated wrapped text with file links inside a Notes drawer instead of COMMENT block
-         (wrapped-text (and citekey 
+         (wrapped-text (and citekey
                            (format "#+LATEX: \\subsubsection*{\\bibentry{%s}}\n#+LATEX: \\addcontentsline{toc}{subsubsection}{%s}\n#+INCLUDE: %s\n:Notes:\nfile:~/abibNotes/%s.org\nfile:~/0papersLabeled/%s.pdf\nAdd more prose. Add tables. Add figures.\n:END:"
                                   citekey citekey org-file-path citekey citekey))))
 
@@ -489,7 +493,7 @@ This is very useful during the preparation of grant progress reports and bibtex 
                     (bibtex-set-dialect 'BibTeX t)
                     (goto-char (point-min))
                     (when (re-search-forward (format "@[^{]+{%s," citekey) nil t)
-                      (let ((beg (save-excursion 
+                      (let ((beg (save-excursion
                                    (bibtex-beginning-of-entry)
                                    (point)))
                             (end (save-excursion
@@ -516,10 +520,10 @@ This is very useful during the preparation of grant progress reports and bibtex 
 
 
 (defun mooerslab-abib-wrap-citar-citekey-and-create-abibnote-org ()
-    "Replace the citekey under the cursor with LaTeX-wrapped text and create a 
+    "Replace the citekey under the cursor with LaTeX-wrapped text and create a
     corresponding empty citekey.org file in abibNotes folder in the home directory.
     Will work with citekeys in citar style or in LaTeX style or plain naked citekeys.
-    The LaTeX code uses the bibentry package to inject a bibliographic entry into 
+    The LaTeX code uses the bibentry package to inject a bibliographic entry into
     a section heading that is added in the table of contents. The function also adds
     file links to the PDF and org note files in a comment block for quick access."
 
@@ -532,7 +536,7 @@ This is very useful during the preparation of grant progress reports and bibtex 
                           (cons start end))))
                     ;; Otherwise just get the word at point
                     (bounds-of-thing-at-point 'word)))
-         (citation-text (when bounds 
+         (citation-text (when bounds
                           (buffer-substring-no-properties (car bounds) (cdr bounds))))
          (citekey (when citation-text
                     (if (string-match "\\[cite:@\\([^]]+\\)\\]" citation-text)
@@ -544,15 +548,15 @@ This is very useful during the preparation of grant progress reports and bibtex 
          (current-dir (when current-file (file-name-directory current-file)))
 
          ;; Try to determine default project number from filename
-         (default-project-number 
-          (cond 
+         (default-project-number
+          (cond
            ;; First try to find "ab2156" pattern in the buffer file name
-           ((and current-file 
+           ((and current-file
                  (string-match "ab\\([0-9]+\\).org" (file-name-nondirectory current-file)))
             (match-string 1 current-file))
 
            ;; Look for "2156" in the buffer file name
-           ((and current-file 
+           ((and current-file
                  (string-match "\\([0-9]+\\)" (file-name-nondirectory current-file)))
             (match-string 1 current-file))
 
@@ -560,7 +564,7 @@ This is very useful during the preparation of grant progress reports and bibtex 
            (t "")))
 
          ;; Prompt the user for project number with default from filename
-         (project-number (read-string (format "Project number for BibTeX file [%s]: " 
+         (project-number (read-string (format "Project number for BibTeX file [%s]: "
                                              default-project-number)
                                      nil nil default-project-number))
 
@@ -569,9 +573,9 @@ This is very useful during the preparation of grant progress reports and bibtex 
          (bib-file-path (and current-dir (concat current-dir bib-file-name)))
          (org-file-dir "/Users/blaine/abibNotes/") ;; Directory for the .org file
          (org-file-path (and citekey (concat org-file-dir citekey ".org"))) ;; Full path for the .org file
-  
+
          ;; Updated wrapped text with file links inside a comment block
-         (wrapped-text (and citekey 
+         (wrapped-text (and citekey
                            (format "#+LATEX: \\subsubsection*{\\bibentry{%s}}\n#+LATEX: \\addcontentsline{toc}{subsubsection}{%s}\n#+INCLUDE: %s\n#+BEGIN_COMMENT\nfile:~/abibNotes/%s.org\nfile:~/0papersLabeled/%s.pdf\n#+END_COMMENT"
                                   citekey citekey org-file-path citekey citekey))))
 
@@ -610,7 +614,7 @@ This is very useful during the preparation of grant progress reports and bibtex 
                     (bibtex-set-dialect 'BibTeX t)
                     (goto-char (point-min))
                     (when (re-search-forward (format "@[^{]+{%s," citekey) nil t)
-                      (let ((beg (save-excursion 
+                      (let ((beg (save-excursion
                                    (bibtex-beginning-of-entry)
                                    (point)))
                             (end (save-excursion
@@ -636,16 +640,16 @@ This is very useful during the preparation of grant progress reports and bibtex 
         (message "Replaced citekey, created .org file, and opened it: %s" org-file-path)))))
 
 
-(defun mooerslab-convert-org-checklist-to-dash-list (begin end)  
-  "Convert org-mode checklist items to simple dash list items in the selected region.  
-BEGIN and END define the boundaries of the region. Generated with Claude 3.7 Sonnet May 7, 2025."  
-  (interactive "r")  ; "r" means the function takes region as input  
-  (save-excursion  
-    (save-restriction  
-      (narrow-to-region begin end)  ; Narrow to the selected region  
-      (goto-char (point-min))  
-      (while (re-search-forward "^\\(\\s-*\\)- \\[[ X]\\] " nil t)  
-        (replace-match "\\1- " t)))))  
+(defun mooerslab-convert-org-checklist-to-dash-list (begin end)
+  "Convert org-mode checklist items to simple dash list items in the selected region.
+BEGIN and END define the boundaries of the region. Generated with Claude 3.7 Sonnet May 7, 2025."
+  (interactive "r")  ; "r" means the function takes region as input
+  (save-excursion
+    (save-restriction
+      (narrow-to-region begin end)  ; Narrow to the selected region
+      (goto-char (point-min))
+      (while (re-search-forward "^\\(\\s-*\\)- \\[[ X]\\] " nil t)
+        (replace-match "\\1- " t)))))
 
 
 ;% This function eases adding log files to the list of files for org-agenda to search for to-dos.
@@ -959,47 +963,47 @@ Prompts for a file path via minibuffer and includes a timestamp in a comment."
 (global-set-key (kbd "C-c l") 'region-to-itemized-list)
 
 
-(defun mooerslab-org-convert-unordered-to-ordered-list (start end)  
-  "Convert unnumbered list items to numbered list items in the marked region."  
-  (interactive "r")  
-  (save-excursion  
-    (save-restriction  
-      (narrow-to-region start end)  
-      (goto-char (point-min))  
-      (let ((counter 1))  
-        (while (re-search-forward "^\\([ \t]*\\)\\(-\\|+\\|\\*\\)\\([ \t]+\\)" nil t)  
-          (replace-match (format "\\1%d.\\3" counter) t)  
+(defun mooerslab-org-convert-unordered-to-ordered-list (start end)
+  "Convert unnumbered list items to numbered list items in the marked region."
+  (interactive "r")
+  (save-excursion
+    (save-restriction
+      (narrow-to-region start end)
+      (goto-char (point-min))
+      (let ((counter 1))
+        (while (re-search-forward "^\\([ \t]*\\)\\(-\\|+\\|\\*\\)\\([ \t]+\\)" nil t)
+          (replace-match (format "\\1%d.\\3" counter) t)
           (setq counter (1+ counter)))))))
 
-(global-set-key (kbd "C-c C-x n") 'mooerslab-org-convert-unordered-to-ordered-list)  
+(global-set-key (kbd "C-c C-x n") 'mooerslab-org-convert-unordered-to-ordered-list)
 
-(defun mooerslab-org-convert-list-in-region-to-checkboxes (start end)  
-  "Convert a dash/hyphen bullet list to org-mode checkboxes in region from START to END."  
-  (interactive "r")  
-  (save-excursion  
-    (narrow-to-region start end)  
-    (goto-char (point-min))  
-    (while (re-search-forward "^\\s-*-\\s-+" nil t)  
-      (replace-match "- [ ] " t nil))  
+(defun mooerslab-org-convert-list-in-region-to-checkboxes (start end)
+  "Convert a dash/hyphen bullet list to org-mode checkboxes in region from START to END."
+  (interactive "r")
+  (save-excursion
+    (narrow-to-region start end)
+    (goto-char (point-min))
+    (while (re-search-forward "^\\s-*-\\s-+" nil t)
+      (replace-match "- [ ] " t nil))
     (widen)))
 
 
-(defun mooerslab-org-convert-checkboxes-in-region-to-list (start end)  
-  "Convert org-mode checkboxes to a regular dash/hyphen bullet list in region from START to END."  
-  (interactive "r")  
-  (save-excursion  
-    (narrow-to-region start end)  
-    (goto-char (point-min))  
-    ;; Match checkbox patterns like "- [ ]", "- [X]", "- [x]" with any whitespace  
-    (while (re-search-forward "^\\(\\s-*\\)- \\[[xX ]\\]\\s-+" nil t)  
-      (let ((indent (match-string 1)))  
-        (replace-match (concat indent "- ") t nil)))  
-    (widen)))  
+(defun mooerslab-org-convert-checkboxes-in-region-to-list (start end)
+  "Convert org-mode checkboxes to a regular dash/hyphen bullet list in region from START to END."
+  (interactive "r")
+  (save-excursion
+    (narrow-to-region start end)
+    (goto-char (point-min))
+    ;; Match checkbox patterns like "- [ ]", "- [X]", "- [x]" with any whitespace
+    (while (re-search-forward "^\\(\\s-*\\)- \\[[xX ]\\]\\s-+" nil t)
+      (let ((indent (match-string 1)))
+        (replace-match (concat indent "- ") t nil)))
+    (widen)))
 
 
 (defun mooerslab-open-file-in-textmate ()
   "Open the current file or `dired' marked files in TextMate.
-   This command is for macOS only. Modified from 
+   This command is for macOS only. Modified from
    URL `http://xahlee.info/emacs/emacs/emacs_open_in_textedit.html'
    Version: 2017-11-21 2021-02-07 2023-06-26"
   (interactive)
@@ -1046,125 +1050,125 @@ Requires markmap-cli (npm install -g markmap-cli)."
       (flush-lines "^$"))))
 
 
-(defun mooerslab-md-to-latex-region (start end)  
-  "Convert markdown in region between START and END to LaTeX format.  
-Uses direct pandoc conversion and carefully handles formatting issues."  
-  (interactive "r")  
-  (unless (executable-find "pandoc")  
-    (user-error "Pandoc not found. Please install pandoc first"))  
+(defun mooerslab-md-to-latex-region (start end)
+  "Convert markdown in region between START and END to LaTeX format.
+Uses direct pandoc conversion and carefully handles formatting issues."
+  (interactive "r")
+  (unless (executable-find "pandoc")
+    (user-error "Pandoc not found. Please install pandoc first"))
 
-  (let ((orig-content (buffer-substring-no-properties start end)))  
-    ;; Convert using pandoc  
-    (let ((latex-content  
-           (with-temp-buffer  
-             (insert orig-content)  
-             (if (zerop (call-process-region (point-min) (point-max)  
-                                           "pandoc" t t nil  
-                                           "-f" "markdown"  
-                                           "-t" "latex"  
-                                           "--wrap=preserve"))  
-                 (buffer-string)  
-               (message "Pandoc conversion failed")  
-               nil))))  
+  (let ((orig-content (buffer-substring-no-properties start end)))
+    ;; Convert using pandoc
+    (let ((latex-content
+           (with-temp-buffer
+             (insert orig-content)
+             (if (zerop (call-process-region (point-min) (point-max)
+                                           "pandoc" t t nil
+                                           "-f" "markdown"
+                                           "-t" "latex"
+                                           "--wrap=preserve"))
+                 (buffer-string)
+               (message "Pandoc conversion failed")
+               nil))))
 
-      (if latex-content  
-          (progn  
-            ;; Replace the region with LaTeX content  
-            (delete-region start end)  
-            (goto-char start)  
-            (insert latex-content)  
+      (if latex-content
+          (progn
+            ;; Replace the region with LaTeX content
+            (delete-region start end)
+            (goto-char start)
+            (insert latex-content)
 
-            ;; Clean up common LaTeX formatting issues  
-            (save-excursion  
-              ;; Mark the end of our working region  
-              (let ((end-marker (+ start (length latex-content))))  
-                (goto-char start)  
+            ;; Clean up common LaTeX formatting issues
+            (save-excursion
+              ;; Mark the end of our working region
+              (let ((end-marker (+ start (length latex-content))))
+                (goto-char start)
 
-                ;; Iterate through the buffer  
-                (while (< (point) end-marker)  
-                  ;; Handle itemize and enumerate environments  
-                  (if (looking-at "\\\\begin{\\(itemize\\|enumerate\\)}")   
-                      (let ((env-type (match-string 1))  
-                            (current-env-start (point)))  
-                
-                        ;; Find the matching end of environment  
-                        (if (re-search-forward (format "\\\\end{%s}" env-type) end-marker t)  
-                            (progn  
-                              ;; Clean up double spacing in list environments  
-                              (goto-char current-env-start)  
-                              (while (and (< (point) end-marker)  
-                                          (re-search-forward "\n\n\\\\item" end-marker t))  
-                                (replace-match "\n\\\\item" nil nil))  
-                              ;; Move to end of this environment  
-                              (re-search-forward (format "\\\\end{%s}" env-type) end-marker t))  
-                          (goto-char end-marker)))  
-                    ;; Not in a list environment, just move to next line  
-                    (forward-line 1)))))  
+                ;; Iterate through the buffer
+                (while (< (point) end-marker)
+                  ;; Handle itemize and enumerate environments
+                  (if (looking-at "\\\\begin{\\(itemize\\|enumerate\\)}")
+                      (let ((env-type (match-string 1))
+                            (current-env-start (point)))
 
-            (message "Markdown converted to LaTeX successfully"))  
+                        ;; Find the matching end of environment
+                        (if (re-search-forward (format "\\\\end{%s}" env-type) end-marker t)
+                            (progn
+                              ;; Clean up double spacing in list environments
+                              (goto-char current-env-start)
+                              (while (and (< (point) end-marker)
+                                          (re-search-forward "\n\n\\\\item" end-marker t))
+                                (replace-match "\n\\\\item" nil nil))
+                              ;; Move to end of this environment
+                              (re-search-forward (format "\\\\end{%s}" env-type) end-marker t))
+                          (goto-char end-marker)))
+                    ;; Not in a list environment, just move to next line
+                    (forward-line 1)))))
 
-        ;; Restore original on failure  
-        (message "Failed to convert markdown to LaTeX")  
-        (delete-region start end)  
-        (goto-char start)  
-        (insert orig-content)))))  
+            (message "Markdown converted to LaTeX successfully"))
 
-
-
-(defun mooerslab-org-convert-lines-to-org-checklist (beg end)  
-  "Convert lines in region to org-mode checklist items.  
-Preserves existing checkboxes, indentation, and empty lines.  
-If no region is active, operate on the current buffer."  
-  (interactive (if (use-region-p)  
-                   (list (region-beginning) (region-end))  
-                 (list (point-min) (point-max))))  
-
-  (let ((lines (split-string (buffer-substring-no-properties beg end) "\n"))  
-        (result ""))  
-
-    (dolist (line lines)  
-      (cond  
-       ;; Empty line - keep as is  
-       ((string-match-p "^\\s-*$" line)  
-        (setq result (concat result line "\n")))  
-
-       ;; Already has a proper checkbox  
-       ((string-match-p "^\\(\\s-*\\)-\\s-*\\[[ xX-]\\]\\s-+" line)  
-        (setq result (concat result line "\n")))  
-
-       ;; Already a list item (dash) without checkbox  
-       ((string-match "^\\(\\s-*\\)-\\s-+\\(.*\\)$" line)  
-        (let ((indent (match-string 1 line))  
-              (content (match-string 2 line)))  
-          (setq result (concat result indent "- [ ] " content "\n"))))  
-
-       ;; Regular line with possible indentation  
-       ((string-match "^\\(\\s-*\\)\\(.*\\)$" line)  
-        (let ((indent (match-string 1 line))  
-              (content (match-string 2 line)))  
-          (when (not (string-empty-p content))  
-            (setq result (concat result indent "- [ ] " content "\n")))))))  
-
-    (delete-region beg end)  
-    (insert result)))  
+        ;; Restore original on failure
+        (message "Failed to convert markdown to LaTeX")
+        (delete-region start end)
+        (goto-char start)
+        (insert orig-content)))))
 
 
-(defun mooerslab-string-to-org-checklist (text)  
-  "Convert string TEXT to org-mode checklist format.  
-Preserves existing checkboxes, indentation, and empty lines."  
-  (with-temp-buffer  
-    (insert text)  
-    (convert-to-org-checklist (point-min) (point-max))  
-    (buffer-string)))  
+
+(defun mooerslab-org-convert-lines-to-org-checklist (beg end)
+  "Convert lines in region to org-mode checklist items.
+Preserves existing checkboxes, indentation, and empty lines.
+If no region is active, operate on the current buffer."
+  (interactive (if (use-region-p)
+                   (list (region-beginning) (region-end))
+                 (list (point-min) (point-max))))
+
+  (let ((lines (split-string (buffer-substring-no-properties beg end) "\n"))
+        (result ""))
+
+    (dolist (line lines)
+      (cond
+       ;; Empty line - keep as is
+       ((string-match-p "^\\s-*$" line)
+        (setq result (concat result line "\n")))
+
+       ;; Already has a proper checkbox
+       ((string-match-p "^\\(\\s-*\\)-\\s-*\\[[ xX-]\\]\\s-+" line)
+        (setq result (concat result line "\n")))
+
+       ;; Already a list item (dash) without checkbox
+       ((string-match "^\\(\\s-*\\)-\\s-+\\(.*\\)$" line)
+        (let ((indent (match-string 1 line))
+              (content (match-string 2 line)))
+          (setq result (concat result indent "- [ ] " content "\n"))))
+
+       ;; Regular line with possible indentation
+       ((string-match "^\\(\\s-*\\)\\(.*\\)$" line)
+        (let ((indent (match-string 1 line))
+              (content (match-string 2 line)))
+          (when (not (string-empty-p content))
+            (setq result (concat result indent "- [ ] " content "\n")))))))
+
+    (delete-region beg end)
+    (insert result)))
 
 
-(defun mooerslab-org-checklist-from-kill-ring ()  
-  "Convert the latest kill-ring entry to org checklist format and put it back in the kill ring."  
-  (interactive)  
-  (when kill-ring  
-    (let ((converted (string-to-org-checklist (car kill-ring))))  
-      (kill-new converted)  
-      (message "Converted text to org checklist and placed in kill ring"))))  
+(defun mooerslab-string-to-org-checklist (text)
+  "Convert string TEXT to org-mode checklist format.
+Preserves existing checkboxes, indentation, and empty lines."
+  (with-temp-buffer
+    (insert text)
+    (convert-to-org-checklist (point-min) (point-max))
+    (buffer-string)))
+
+
+(defun mooerslab-org-checklist-from-kill-ring ()
+  "Convert the latest kill-ring entry to org checklist format and put it back in the kill ring."
+  (interactive)
+  (when kill-ring
+    (let ((converted (string-to-org-checklist (car kill-ring))))
+      (kill-new converted)
+      (message "Converted text to org checklist and placed in kill ring"))))
 
 
 (defun mooerslab-md-to-org-region (start end)
@@ -1658,7 +1662,7 @@ Automatically determines column count and validates against table structure."
 
 
 ;; M-x mooerslab-generate-tar-commands-with-chain after making a selection of a list of file paths to
-;; generate the tar commands to tar the folders in the current directory from which the 
+;; generate the tar commands to tar the folders in the current directory from which the
 ;; tar command is issue. This is very helpful when the harddrive is full or read-only.
 (defun mooerslab-generate-tar-commands (start end)
   "Generate tar commands for a list of paths.
@@ -1826,11 +1830,11 @@ Automatically determines column count and validates against table structure."
 ;;; launch-timesspent
 ;% This is a sqlite database where I track my effort.
 ;% Probably better to make a bash alias to avoid tying up keybindings.
-(defun mooerslab-launch-timesspent ()
-      "Launch timesspent database."
-      (interactive)
-      (shell-command "open /Users/blaine/6003TimeTracking/cb/mytime.db"))
-    (global-set-key (kbd "C-c e") 'launch-timesspent)
+;(defun mooerslab-launch-timesspent ()
+;      "Launch timesspent database."
+;     (interactive)
+;      (shell-command "open /Users/blaine/6003TimeTracking/cb/mytime.db"))
+;    (global-set-key (kbd "C-c e") 'launch-timesspent)
 
 
 ;;; Move the cursor to the minibuffer without using the mouse
@@ -1928,9 +1932,6 @@ point relative to the headline with the tag."
   (start-process "mpv" nil "mpv" URL))
 
 
-;; (global-set-key (kbd ".") 'self-insert-command)
-
-
 ;;; Reload the initialization file after editing it in Emacs
 (defun mooerslab-reload-init-e30f ()
   "Reload the init.el file for e30fewpacakges. Edit the path to suit your needs."
@@ -1945,9 +1946,9 @@ point relative to the headline with the tag."
   (find-file "~/e30fewpackages/init.el"))
 
 
-;;; Open the init.el file for editing.
+;;; Open the mooerslab.el file for editing.
 (defun mooerslab-open-mooerslab-functions ()
-  "Open the init.el file for editing. Edit the path to suit your needs."
+  "Open the mooerslab.el file for editing. Edit the path to suit your needs."
   (interactive)
   (find-file "~/6112MooersLabGitHubLabRepos/mooerslab-functions-el/mooerslab-functions.el"))
 
@@ -2029,8 +2030,8 @@ point relative to the headline with the tag."
 ;       (goto-char (point-max))
 ;       (insert "\\end{itemize}\n")
 ;       (widen))))
-          
-          
+
+
 ;; ;;; widen-frame to the right. Enter period have first issue.
 ;; ;% Redundant with built-in commands.
 ;; (defun mooerslab-widen-frame ()
