@@ -2005,6 +2005,140 @@ point relative to the headline with the tag."
 
 
 
+
+(defun mooerslab-org-roam-list-titles-and-tags ()
+  "Display the titles and tags of all org-roam notes in a buffer, one note per row.
+Useful for feeding into Claude to make atomic notes from a chunk of prose."
+  (interactive)
+  (let* ((buffer-name "*Org-Roam Titles and Tags*")
+         (buffer (get-buffer-create buffer-name))
+         (all-nodes (org-roam-db-query [:select [id file title] :from nodes
+                                         :where (= level 0)]))
+         (all-tags (org-roam-db-query [:select [node-id tag] :from tags])))
+    
+    ;; Clear the buffer and set it up
+    (with-current-buffer buffer
+      (erase-buffer)
+      (org-mode)
+      (insert "#+TITLE: Org-Roam Notes: Titles and Tags\n\n")
+      
+      ;; Process each node
+      (dolist (node all-nodes)
+        (let* ((id (nth 0 node))
+               (file (nth 1 node))
+               (title (nth 2 node))
+               (node-tags (mapcar #'cadr
+                                 (seq-filter (lambda (tag-info)
+                                               (string= (car tag-info) id))
+                                             all-tags)))
+               (tags-str (if node-tags
+                             (concat " " (mapconcat (lambda (tag) 
+                                                      (format ":%s:" tag))
+                                                    node-tags
+                                                    " "))
+                           "")))
+          
+          ;; Insert the title and tags
+          (insert (format "* %s%s\n" 
+                          (or title (file-name-nondirectory file) "Untitled")
+                          tags-str))))
+      
+      ;; Finalize buffer setup
+      (goto-char (point-min))
+      (org-overview))
+    
+    ;; Switch to the buffer
+    (switch-to-buffer buffer)
+    (message "Found %d org-roam notes" (length all-nodes))))
+
+
+
+
+(defun mooerslab-org-roam-list-metadata-all-notes ()
+  "Display the titles, tags, and backlinks of all org-roam notes in a buffer, one note per headliine. 
+The list is a org-roam heirarchical tree of headlines with the backlinks listed below the headlines.
+Useful for feeding into Claude to make atomic notes from a chunk of prose and have Claude include the backlinks."
+  (interactive)
+  (let* ((buffer-name "*Org-Roam Titles, Tags, and Backlinks*")
+         (buffer (get-buffer-create buffer-name))
+         (all-nodes (org-roam-db-query [:select [id file title] :from nodes
+                                         :where (= level 0)]))
+         (all-tags (org-roam-db-query [:select [node-id tag] :from tags]))
+         ;; Fixed query to use the correct column names
+         (all-links (org-roam-db-query [:select [source dest] :from links
+                                        :where (= type "id")])))
+    
+    ;; Clear the buffer and set it up
+    (with-current-buffer buffer
+      (erase-buffer)
+      (org-mode)
+      (insert "#+TITLE: Org-Roam Notes: Titles, Tags, and Backlinks\n\n")
+      
+      ;; Process each node
+      (dolist (node all-nodes)
+        (let* ((id (nth 0 node))
+               (file (nth 1 node))
+               (title (nth 2 node))
+               (node-tags (mapcar #'cadr
+                                 (seq-filter (lambda (tag-info)
+                                               (string= (car tag-info) id))
+                                             all-tags)))
+               (tags-str (if node-tags
+                             (concat " " (mapconcat (lambda (tag) 
+                                                      (format ":%s:" tag))
+                                                    node-tags
+                                                    " "))
+                           ""))
+               ;; Get backlinks (nodes that link to this node)
+               (backlinks (seq-filter (lambda (link)
+                                        (string= (cadr link) id))
+                                      all-links))
+               (backlink-ids (mapcar #'car backlinks)))
+          
+          ;; Insert the title and tags
+          (insert (format "* %s%s\n" 
+                          (or title (file-name-nondirectory file) "Untitled")
+                          tags-str))
+          
+          ;; Add backlinks section if there are any
+          (when backlinks
+            (insert "** Backlinks:\n")
+            ;; For each backlink, find the node info and display title and tags
+            (dolist (backlink-id backlink-ids)
+              (let* ((backlink-node (car (seq-filter (lambda (n) 
+                                                       (string= (car n) backlink-id))
+                                                     all-nodes)))
+                     (backlink-title (and backlink-node (nth 2 backlink-node)))
+                     (backlink-file (and backlink-node (nth 1 backlink-node)))
+                     (backlink-tags (mapcar #'cadr
+                                            (seq-filter (lambda (tag-info)
+                                                         (string= (car tag-info) backlink-id))
+                                                       all-tags)))
+                     (backlink-tags-str (if backlink-tags
+                                           (concat " " (mapconcat (lambda (tag) 
+                                                                    (format ":%s:" tag))
+                                                                  backlink-tags
+                                                                  " "))
+                                         "")))
+                (if backlink-node
+                    (insert (format "   - %s%s\n" 
+                                   (or backlink-title 
+                                       (file-name-nondirectory backlink-file) 
+                                       "Untitled")
+                                   backlink-tags-str))
+                  (insert (format "   - Unknown node: %s\n" backlink-id))))))))
+      
+      ;; Finalize buffer setup
+      (goto-char (point-min))
+      (org-overview))
+    
+    ;; Switch to the buffer
+    (switch-to-buffer buffer)
+    (message "Found %d org-roam notes" (length all-nodes))))
+
+
+
+
 ; (defun mooerslab-org-unordered-list-to-latex-itemized-list ()
 ;   "Convert org-mode unordered list at point to LaTeX itemized list."
 ; Busted due to beg in org-mode
