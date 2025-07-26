@@ -2149,6 +2149,9 @@ This is a temporary placeholder for the missing flyover-mode."
   "Updates the first line of each .tex file in the specified directory
 from '%!TEX root = ../main.tex' to '%!TEX root = ../main2113.tex'.
 
+This first line enables the compiling of the whole document from an
+individual file.
+
 Optional argument CONTENT-DIR is the path to the Content directory.
 If not provided, defaults to './Content'."
   (interactive)
