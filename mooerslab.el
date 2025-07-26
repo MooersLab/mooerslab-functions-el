@@ -2052,13 +2052,20 @@ Useful for feeding into Claude to make atomic notes from a chunk of prose."
     (message "Found %d org-roam notes" (length all-nodes))))
 
 
-
-
 (defun mooerslab-org-roam-list-metadata-all-notes ()
-  "Display the titles, tags, and backlinks of all org-roam notes in a buffer, one note per headliine. 
-The list is a org-roam heirarchical tree of headlines with the backlinks listed below the headlines.
+  "Display the titles, tags, and backlinks of all org-roam notes in a buffer, one note per headline.
+The list is a org-roam hierarchical tree of headlines with the backlinks listed below the headlines.
+Each backlink is displayed with its full ID link format: [[id:NODE-ID][TITLE]].
 Useful for feeding into Claude to make atomic notes from a chunk of prose and have Claude include the backlinks."
   (interactive)
+  ;; Define a dummy flyover-mode if it doesn't exist
+  (unless (fboundp 'flyover-mode)
+    (defun flyover-mode (&optional arg)
+      "Dummy function to prevent void function error.
+This is a temporary placeholder for the missing flyover-mode."
+      (interactive)
+      nil))
+  
   (let* ((buffer-name "*Org-Roam Titles, Tags, and Backlinks*")
          (buffer (get-buffer-create buffer-name))
          (all-nodes (org-roam-db-query [:select [id file title] :from nodes
@@ -2067,13 +2074,13 @@ Useful for feeding into Claude to make atomic notes from a chunk of prose and ha
          ;; Fixed query to use the correct column names
          (all-links (org-roam-db-query [:select [source dest] :from links
                                         :where (= type "id")])))
-    
+
     ;; Clear the buffer and set it up
     (with-current-buffer buffer
       (erase-buffer)
       (org-mode)
       (insert "#+TITLE: Org-Roam Notes: Titles, Tags, and Backlinks\n\n")
-      
+  
       ;; Process each node
       (dolist (node all-nodes)
         (let* ((id (nth 0 node))
@@ -2094,12 +2101,12 @@ Useful for feeding into Claude to make atomic notes from a chunk of prose and ha
                                         (string= (cadr link) id))
                                       all-links))
                (backlink-ids (mapcar #'car backlinks)))
-          
+      
           ;; Insert the title and tags
           (insert (format "* %s%s\n" 
                           (or title (file-name-nondirectory file) "Untitled")
                           tags-str))
-          
+      
           ;; Add backlinks section if there are any
           (when backlinks
             (insert "** Backlinks:\n")
@@ -2121,20 +2128,22 @@ Useful for feeding into Claude to make atomic notes from a chunk of prose and ha
                                                                   " "))
                                          "")))
                 (if backlink-node
-                    (insert (format "   - %s%s\n" 
+                    (insert (format "   - [[id:%s][%s]]%s\n" 
+                                   backlink-id
                                    (or backlink-title 
                                        (file-name-nondirectory backlink-file) 
                                        "Untitled")
                                    backlink-tags-str))
                   (insert (format "   - Unknown node: %s\n" backlink-id))))))))
-      
+  
       ;; Finalize buffer setup
       (goto-char (point-min))
       (org-overview))
-    
+
     ;; Switch to the buffer
     (switch-to-buffer buffer)
     (message "Found %d org-roam notes" (length all-nodes))))
+
 
 
 
