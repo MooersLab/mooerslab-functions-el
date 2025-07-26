@@ -155,7 +155,7 @@ Enter `M-x ml/mooerslab-functions-open` to edit the file.
 
 
 ## Related
-| --- | --- |These functions were mentioned in the talk presented at emacsconf 2024 on metadata management in writing projects.
+These functions were mentioned in the talk presented at emacsconf 2024 on metadata management in writing projects.
 
 ## Status
 
@@ -171,7 +171,7 @@ Ready to roll.
 | Version 0.4 |   Updated functions from emacs29 to emacs30.                                                                                              | 2025 March 3    |
 | Version 0.5 |   Added function to add period to end of sentences in various kinds of lists in org and LaTeX files.                                      | 2025 March 4    |
 | Version 0.6 |   Added table of functions and their docstrings.                                                                                         | 2025 May 17    |
-| Version 0.7 |   Update table of functions and their docstrings. 77 functions now listed                                                                                        | 2025 July 25    |
+| Version 0.7 |   Update table of functions and their docstrings. 77 functions now listed                                                                  | 2025 July 25    |
 
 ## Sources of funding
 
