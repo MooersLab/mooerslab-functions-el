@@ -2145,7 +2145,56 @@ This is a temporary placeholder for the missing flyover-mode."
     (message "Found %d org-roam notes" (length all-nodes))))
 
 
+(defun update-tex-root-references (&optional content-dir)
+  "Updates the first line of each .tex file in the specified directory
+from '%!TEX root = ../main.tex' to '%!TEX root = ../main2113.tex'.
 
+Optional argument CONTENT-DIR is the path to the Content directory.
+If not provided, defaults to './Content'."
+  (interactive)
+  (let* ((content-dir (or content-dir "./Content"))
+         (files-processed 0)
+         (files-modified 0))
+
+    ;; Make sure the directory exists
+    (unless (file-directory-p content-dir)
+      (error "Directory '%s' not found" content-dir))
+
+    ;; Process all .tex files in the directory
+    (dolist (file (directory-files content-dir t "\\.tex$"))
+      (setq files-processed (1+ files-processed))
+  
+      ;; Read the file content
+      (with-temp-buffer
+        (insert-file-contents file)
+        (goto-char (point-min))
+    
+        ;; Check if the first line needs to be modified
+        (let ((first-line (buffer-substring-no-properties 
+                          (line-beginning-position) 
+                          (line-end-position))))
+          (if (string= first-line "%!TEX root = ../main.tex")
+              (progn
+                ;; Modify the first line
+                (delete-region (line-beginning-position) (line-end-position))
+                (insert "%!TEX root = ../main2113.tex")
+            
+                ;; Save the file
+                (write-region (point-min) (point-max) file)
+                (setq files-modified (1+ files-modified))
+                (message "Updated: %s" file))
+            (message "Skipped: %s (first line is: %s)" file first-line)))))
+
+    ;; Display summary
+    (message "Summary: Processed %d files, modified %d files" 
+             files-processed files-modified)
+    (list files-processed files-modified)))
+
+
+    ;; Example usage:
+    ;; (update-tex-root-references)
+    ;; Or with a specific directory:
+    ;; (update-tex-root-references "/Users/blaine/2113mlPrimer/Content")
 
 
 ; (defun mooerslab-org-unordered-list-to-latex-itemized-list ()
