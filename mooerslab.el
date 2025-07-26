@@ -2145,7 +2145,7 @@ This is a temporary placeholder for the missing flyover-mode."
     (message "Found %d org-roam notes" (length all-nodes))))
 
 
-(defun update-tex-root-references (&optional content-dir)
+(defun mooerslab-update-tex-root-references (&optional content-dir)
   "Updates the first line of each .tex file in the specified directory
 from '%!TEX root = ../main.tex' to '%!TEX root = ../main2113.tex'.
 
