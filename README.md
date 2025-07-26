@@ -1,4 +1,4 @@
-![Version](https://img.shields.io/static/v1?label=mooerslab-functions-el&message=0.6&color=brightcolor)
+![Version](https://img.shields.io/static/v1?label=mooerslab-functions-el&message=0.7&color=brightcolor)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](https://opensource.org/licenses/MIT)
 
 
@@ -76,7 +76,7 @@ Enter `M-x ml/mooerslab-functions-open` to edit the file.
 | `mooerslab-abib-wrap-citar-citekey-and-create-abibnote-org` | Replace the citekey under the cursor with LaTeX-wrapped text and create a corresponding empty citekey.org file in abibNotes folder in the home directory. Will work with citekeys in citar style or in LaTeX style or plain naked citekeys. The LaTeX code uses the bibentry package to inject a bibliographic entry into a section heading that is added in the table of contents. The function also adds file links to the PDF and org note files in a comment block for quick access. |
 | `mooerslab-append-log-to-org-agenda-files` | Interactively append a log####.org file to org-agenda-files list. Updates both the current org-agenda-files variable in memory and the setq statement in init.el. Customize the path to your init.el file. |
 | `mooerslab-beginning-of-list` | Move to the beginning of the current list. Handles org-mode lists, checklists, and LaTeX lists. |
-| `mooerslab-bibtex-add-file-field-to-entry` | Add a PDF file field to the current BibTeX entry when it is being generate after submission of the article’s DOI. The file will be renamed using the citation key. The file is stored in ~/0papersLabeled. This destination for PDFs is set in the init.el. The file entry will be made even if the PDF was not automatically downloaded. You can add the PDF to your collection manually in this sitution. |
+| `mooerslab-bibtex-add-file-field-to-entry` | Add a PDF file field to the current BibTeX entry when it is being generated after submission of the article’s DOI. The file will be renamed using the citation key. The file is stored in ~/0papersLabeled. This destination for PDFs is set in the init.el. The file entry will be made even if the PDF was not automatically downloaded. You can add the PDF to your collection manually in this sitution. |
 | `mooerslab-carry-forward-todos` | Carry forward undone TODOs and unchecked items to Next Week while preserving categories. |
 | `mooerslab-convert-init-el-to-org` | Convert an Emacs init.el file to an Org-mode file. |
 | `mooerslab-convert-org-checklist-to-dash-list` | Convert org-mode checklist items to simple dash list items in the selected region. BEGIN and END define the boundaries of the region. Generated with Claude 3.7 Sonnet May 7, 2025. |
@@ -84,11 +84,11 @@ Enter `M-x ml/mooerslab-functions-open` to edit the file.
 | `mooerslab-create-org-table-with-caption` | This interactive function prompts the user for the number of rows. columns, and the caption of the table. |
 | `mooerslab-csv2org` | Convert a CSV file to an Org-mode table. Prompts for a CSV file and optionally a caption. Creates a new buffer containing the Org-mode table. Does NOT handle CSV files with quoted fields containing commas. CSV-FILE: The path to the CSV file. CAPTION: (Optional) A string to use as the table caption. |
 | `mooerslab-doi-utils-add-file-field` | Advice function that adds a file field after adding a BibTeX entry. |
-| `mooerslab-end-of-list` | Move to end of the current list. Handles org-mode lists, checklists, and LaTeX lists. |
+| `mooerslab-end-of-list` | Move to the end of the current list. Handles org-mode lists, checklists, and LaTeX lists. |
 | `mooerslab-export-csv-to-matched-sqlite-table` | Export selected rows from a CSV file to an SQLite database. Automatically determines column count and validates against table structure. |
 | `mooerslab-export-csv-to-sqlite-table` | Export selected rows from a CSV file to an SQLite database. |
 | `mooerslab-find-file-at-line` | Open FILE on LINE. |
-| `mooerslab-format-authors-in-region` | Format author names in region from ’First M.N. Last’ to ’Last, F.M.N.’ Works with various formats: - Regular names: ’Blaine Mooers’ -> ’Mooers, B.’ - With whitespace mulitple middle initials: ’Blaine H M Mooers’ -> ’Mooers, B.H.M.’ - With no whitespace mulitple middle initials: ’Blaine HM Mooers’ -> ’Mooers, B.H.M.’ - With dotted multiple initials: ’Blaine H.M. Mooers’ -> ’Mooers, B.H.M.’ - Multiple authors (comma-separated) Select a region with author names and run this function to reformat them. This is very useful during the preparation of grant progress reports and bibtex entries. |
+| `mooerslab-format-authors-in-region` | Format author names in region from ’First M.N. Last’ to ’Last, F.M.N.’ Works with various formats: - Regular names: ’Blaine Mooers’ -> ’Mooers, B.’ - With whitespace mulitple middle initials: ’Blaine H M Mooers’ -> ’Mooers, B.H.M.’ - With no whitespace mulitple middle initials: ’Blaine HM Mooers’ -> ’Mooers, B.H.M.’ - With dotted multiple initials: ’Blaine H.M. Mooers’ -> ’Mooers, B.H.M.’ - Multiple authors (comma-separated) Select a region with author names and run this function to reformat them. This is very useful during the preparation of grant progress reports and BibTeX entries. |
 | `mooerslab-functions-load` | Open user-defined-function. |
 | `mooerslab-functions-open` | Open user-defined-function. |
 | `mooerslab-generate-tar-commands` | Generate tar commands for a list of paths. Each path’s last component becomes the name of the tar file. START and END define the region containing the paths (one per line). If no region is active, operate on the entire buffer. |
@@ -135,28 +135,27 @@ Enter `M-x ml/mooerslab-functions-open` to edit the file.
 | `mooerslab-org-move-to-tag` | Move the cursor below a headline with a specific TAG. If TAG is not provided, use a hardcoded default tag. You have to adjust the headline level in the function. The regular expression ^\*\* .*:%s: is used to search for second-level headlines (starting with **) with the specified tag. |
 | `mooerslab-org-or-latex-add-periods-to-list` | Add a period to the end of each line in the current list if missing. Designed to work in both org and latex files. This is a massive problem with lists in slideshows. The absence of periods will upset some audience members. Works with: - org-mode lists (-, *, numbers) - org-mode checklists (- [ ], * [ ]) https://github.com/cursorless-everywhere/emacs-cursorless/issues- LaTeX \item lists - LaTeX \item checklists (\item [ ]) Usage: Place cursor anywhere in list. Enter M-x org-or-latex-add-periods-to-list or C-c p. Developed with the help of Claude 3.5 Sonnet. |
 | `mooerslab-org-region-to-itemized-list` | Convert the lines in a selected region into an itemized list. |
-| `mooerslab-org-roam-list-metadata-all-notes` | Display the titles, tags, and backlinks of all org-roam notes in a buffer, one note per headliine. The list is a org-roam heirarchical tree of headlines with the backlinks listed below the headlines. Useful for feeding into Claude to make atomic notes from a chunk of prose and have Claude include the backlinks. |
+| `mooerslab-org-roam-list-metadata-all-notes` | Display the titles, tags, and backlinks of all org-roam notes in a buffer, one note per headline. The list is an Org-roam hierarchical tree of headlines, with backlinks listed below each headline. Useful for feeding into Claude to make atomic notes from a chunk of prose and have Claude include the backlinks. |
 | `mooerslab-org-roam-list-titles-and-tags` | Display the titles and tags of all org-roam notes in a buffer, one note per row. Useful for feeding into Claude to make atomic notes from a chunk of prose. |
 | `mooerslab-play-youtube-video` | Play a YouTube video with mpv. |
-| `mooerslab-region-csv-to-org-table` | Convert CSV data in region to org table format. Assumes first row contains headers and uses commas as delimiters. |
+| `mooerslab-region-csv-to-org-table` | Convert CSV data in region to org table format. Assumes the first row contains headers and uses commas as delimiters. |
 | `mooerslab-reload-init-e30f` | Reload the init.el file for e30fewpacakges. Edit the path to suit your needs. |
 | `mooerslab-reload-my-hydras` | Reload my-hydras.el. Edit the path to suit your needs. |
 | `mooerslab-remove-blank-lines-in-region` | Remove all blank lines in the region between START and END. |
-| `mooerslab-replace-first-column-with-echo-region` | Replace the first column in region with ’echo "’ + rest of column (minus first char). For example: ’data1 value1’ becomes ’echo "ata1 value1’. Thus is a very common operation that is normally handled in three steps starting with making a rectangular selection and then replacing this selection. |
+| `mooerslab-replace-first-column-with-echo-region` | Replace the first column in region with ’echo "’ + rest of column (minus first char). For example: ’data1 value1’ becomes ’echo "ata1 value1’. This is a pervasive operation that is normally handled in three steps, starting with making a rectangular selection and then replacing this selection. |
 | `mooerslab-spawn-shell` | Invoke shell test |
-| `mooerslab-split-sentences-into-lines` | Move each sentence in the region to its own line, ignoring common titles and abbreviations. |
+| `mooerslab-split-sentences-into-lines` | Move each sentence in the region to its line, ignoring common titles and abbreviations. |
 | `mooerslab-string-to-org-checklist` | Convert string TEXT to org-mode checklist format. Preserves existing checkboxes, indentation, and empty lines. |
 | `mooerslab-switch-to-minibuffer` | Switch to minibuffer window. |
-| `mooerslab-wrap-article-pdf-filename-prefixes-as-org-links` | Transform a selection of article PDF filenames into org-mode links. Each line in the region from BEG to END should contain a PDF filename without the extension pdf. This function will transform each line into an org-mode link pointing to ~/0papersLabeled/filename.pdf. |
-| `mooerslab-wrap-book-pdf-filename-prefixes-as-org-links` | Transform a selection of book PDF filenames into org-mode links. Each line in the region from BEG to END should contain a PDF filename without the extension pdf. This function will transform each line into an org-mode link pointing to ~/0booksLabeled/filename.pdf. |
+| `mooerslab-wrap-article-pdf-filename-prefixes-as-org-links` | Transform a selection of article PDF filenames into org-mode links. Each line in the region from BEG to END should contain a PDF filename without the extension. This function will transform each line into an org-mode link pointing to ~/0papersLabeled/filename.pdf. |
+| `mooerslab-wrap-book-pdf-filename-prefixes-as-org-links` | Transform a selection of book PDF filenames into org-mode links. Each line in the region from BEG to END should contain a PDF filename without the extension F. This function will transform each line into an org-mode link pointing to ~/0booksLabeled/filename.pdf. |
 | `mooerslab-wrap-citekey-and-create-abibnote-tex` | Replace the citekey under the cursor with LaTeX-wrapped text, create a corresponding .tex file, and open it in a new buffer. |
 | --- | --- |
 
 
 
 ## Related
-
-These functions were mentioned in the talk presented at emacsconf 2024 on metadata management in writing projects.
+| --- | --- |These functions were mentioned in the talk presented at emacsconf 2024 on metadata management in writing projects.
 
 ## Status
 
@@ -172,7 +171,7 @@ Ready to roll.
 | Version 0.4 |   Updated functions from emacs29 to emacs30.                                                                                              | 2025 March 3    |
 | Version 0.5 |   Added function to add period to end of sentences in various kinds of lists in org and LaTeX files.                                      | 2025 March 4    |
 | Version 0.6 |   Added table of functions and their docstrings.                                                                                         | 2025 May 17    |
-
+| Version 0.7 |   Update table of functions and their docstrings. 77 functions now listed                                                                                        | 2025 July 25    |
 
 ## Sources of funding
 
