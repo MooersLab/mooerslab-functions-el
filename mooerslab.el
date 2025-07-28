@@ -2145,6 +2145,56 @@ This is a temporary placeholder for the missing flyover-mode."
     (message "Found %d org-roam notes" (length all-nodes))))
 
 
+(defun mooerslab-org-replace-in-directory (dir old-text new-text)
+  "Replace OLD-TEXT with NEW-TEXT in all .org files in DIR and its subdirectories.
+Arguments:
+  DIR      - The directory to search for .org files. End path with a slash.
+  OLD-TEXT - The text to be replaced
+  NEW-TEXT - The text to replace with"
+  (interactive
+   (list
+    (read-directory-name "Directory to process: " default-directory)
+    (read-string "Text to replace: ")
+    (read-string "Replace with: ")))
+
+  ;; Ensure directory path ends with a slash
+  (setq dir (file-name-as-directory dir))
+
+  ;; Find all .org files in the directory and subdirectories
+  (let* ((org-files (directory-files-recursively dir "\\.org$"))
+         (count 0)
+         (files-changed 0))
+
+    (if (null org-files)
+        (message "No .org files found in %s" dir)
+  
+      ;; Process each file
+      (dolist (file org-files)
+        (let ((file-changed nil))
+          (with-temp-buffer
+            (insert-file-contents file)
+            (goto-char (point-min))
+        
+            ;; Replace all occurrences in the file
+            (let ((replacements 0))
+              (while (search-forward old-text nil t)
+                (replace-match new-text t t)
+                (setq replacements (1+ replacements))
+                (setq count (1+ count))
+                (setq file-changed t))
+          
+              ;; Save the file if changes were made
+              (when file-changed
+                (setq files-changed (1+ files-changed))
+                (write-region (point-min) (point-max) file)
+                (message "Updated %s - %d replacements" file replacements)))))
+  
+      ;; Report the results
+      (message "Replaced %d occurrences of '%s' with '%s' in %d out of %d files"
+               count old-text new-text files-changed (length org-files))))))
+
+
+
 (defun mooerslab-update-tex-root-references (&optional content-dir)
   "Updates the first line of each .tex file in the specified directory
 from '%!TEX root = ../main.tex' to '%!TEX root = ../main2113.tex'.
