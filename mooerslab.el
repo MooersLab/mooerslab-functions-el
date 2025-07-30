@@ -1406,42 +1406,87 @@ Requires an active region selection."
       (replace-match "-"))))
 
 ;;; mooerslab-region-csv-to-org-table
-;% Ceontert selected rows in CSV format into a org-tabl
-
-
+;% Convert selected rows in CSV format into a org-table.
+;% It does not try to use these commas as field separators.
+;% Respects the commas inside of strings.
 (defun mooerslab-region-csv-to-org-table ()
   "Convert CSV data in region to org table format.
-Assumes first row contains headers and uses commas as delimiters."
+Assumes first row contains headers. Properly handles quoted fields with commas."
   (interactive)
   (if (not (region-active-p))
       (message "No region selected")
     (let* ((start (region-beginning))
            (end (region-end))
            (csv-text (buffer-substring-no-properties start end))
-           (rows (split-string csv-text "\n" t))
-           (header-row (car rows))
-           (data-rows (cdr rows)))
+           (parsed-rows (mooerslab-parse-csv-text csv-text)))
       ;; Delete region content
       (delete-region start end)
       ;; Insert org table header
-      (insert "|"
-              (mapconcat (lambda (cell)
-                          (string-trim cell))
-                        (split-string header-row "," t)
-                        "|")
-              "|\n|-\n")
-      ;; Insert data rows
-      (dolist (row data-rows)
-        (when (not (string-empty-p row))
-          (insert "|"
-                  (mapconcat (lambda (cell)
-                             (string-trim cell))
-                           (split-string row "," t)
-                           "|")
-                  "|\n")))
+      (when parsed-rows
+        (insert "| " 
+                (mapconcat 'identity (car parsed-rows) " | ")
+                " |\n|-\n")
+        ;; Insert data rows
+        (dolist (row (cdr parsed-rows))
+          (when row
+            (insert "| "
+                    (mapconcat 'identity row " | ")
+                    " |\n"))))
       ;; Align the table
       (org-table-align))))
 
+(defun mooerslab-parse-csv-text (text)
+  "Parse CSV text into a list of rows, each row being a list of fields.
+Properly handles quoted strings containing commas."
+  (let ((rows (split-string text "\n" t)))
+    (mapcar 'mooerslab-parse-csv-row rows)))
+
+(defun mooerslab-parse-csv-row (row)
+  "Parse a CSV row, properly handling quoted strings with commas."
+  (let ((fields nil)
+        (i 0)
+        (len (length row))
+        (current-field "")
+        (in-quotes nil)
+        (quote-char nil))
+    
+    (while (< i len)
+      (let ((char (aref row i)))
+        (cond
+         ;; Handle quotes (both single and double)
+         ((and (or (char-equal char ?\") (char-equal char ?\'))
+               (or (not in-quotes) (char-equal char quote-char)))
+          (if in-quotes
+              (setq in-quotes nil)
+            (setq in-quotes t
+                  quote-char char)))
+         
+         ;; Handle commas - only treat as field separators when not in quotes
+         ((and (char-equal char ?,) (not in-quotes))
+          (push current-field fields)
+          (setq current-field ""))
+         
+         ;; Add character to current field
+         (t (setq current-field (concat current-field (string char))))))
+      (setq i (1+ i)))
+    
+    ;; Add the last field
+    (push current-field fields)
+    
+    ;; Cleanup: trim spaces and remove surrounding quotes
+    (setq fields (nreverse fields))
+    (mapcar (lambda (field)
+              (setq field (string-trim field))
+              ;; Remove surrounding quotes if present
+              (when (and (> (length field) 1)
+                         (or 
+                          (and (char-equal (aref field 0) ?\")
+                               (char-equal (aref field (1- (length field))) ?\"))
+                          (and (char-equal (aref field 0) ?\')
+                               (char-equal (aref field (1- (length field))) ?\'))))
+                (setq field (substring field 1 (1- (length field)))))
+              field)
+            fields)))
 
 ;;; create-org-table-with-caption
 ;%  This interactive function prompts the user to select the table's number of rows, columns, and caption.
@@ -2193,6 +2238,41 @@ Arguments:
       (message "Replaced %d occurrences of '%s' with '%s' in %d out of %d files"
                count old-text new-text files-changed (length org-files))))))
 
+
+(defun mooerslab/generate-reading-list-for-project (project)
+  "Generate an Org-mode reading list for a specific project based on annotations in custom-made project field in ebib.
+  Here is an example:
+  (setq ebib-extra-fields
+        '((keywords \"Keywords\" nil)
+          (projects \"Projects\" nil)
+          (readstatus \"ReadStatus\" nil)
+          (priority \"Priority\" nil)
+          (notes \"Notes\" t)))
+  "
+  (interactive "sProject name: ")
+  (let ((buf (get-buffer-create (format "*Reading List: %s*" project))))
+    (with-current-buffer buf
+      (org-mode)
+      (erase-buffer)
+      (insert (format "#+TITLE: Reading List for %s\n\n" project))
+      (insert "* Papers to Read\n\n")
+      ;; Get entries from Ebib
+      (ebib-db-list-keys (ebib--get-current-db))
+      ;; Process each entry
+      (dolist (key (ebib-db-list-keys (ebib--get-current-db)))
+        (let* ((entry (ebib-db-get-entry key (ebib--get-current-db)))
+               (projects (ebib-get-field-value "projects" entry (ebib--get-current-db)))
+               (readstatus (ebib-get-field-value "readstatus" entry (ebib--get-current-db)))
+               (title (ebib-get-field-value "title" entry (ebib--get-current-db)))
+               (authors (ebib-get-field-value "author" entry (ebib--get-current-db))))
+          (when (and projects (string-match project projects))
+            (insert (format "** %s\n" title))
+            (insert (format "   :PROPERTIES:\n"))
+            (insert (format "   :AUTHORS: %s\n" authors))
+            (insert (format "   :KEY: %s\n" key))
+            (insert (format "   :STATUS: %s\n" (or readstatus "unread")))
+            (insert (format "   :END:\n\n"))))))
+    (switch-to-buffer buf)))
 
 
 (defun mooerslab-update-tex-root-references (&optional content-dir)
