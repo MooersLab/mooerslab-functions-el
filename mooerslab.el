@@ -7,10 +7,10 @@
 ;; Author: blaine-mooers@ouhsc.edu
 ;; Maintainer: blaine-mooers@ouhsc.edu
 ;; URL: https://github.com/MooersLab/mooerslab-functions-el
-;; Version: 0.5
+;; Version: 0.7
 ;; Keywords: data, pdb
 ;; License: MIT
-;; Updated 2025 May 17
+;; Updated 2025 Julyy 31
 
 ;;; This package is known to work (insofar as it's tested) with Emacs 30.1.
 
@@ -1409,6 +1409,7 @@ Requires an active region selection."
 ;% Convert selected rows in CSV format into a org-table.
 ;% It does not try to use these commas as field separators.
 ;% Respects the commas inside of strings.
+;% The next three functions are part of the same functionality.
 (defun mooerslab-region-csv-to-org-table ()
   "Convert CSV data in region to org table format.
 Assumes first row contains headers. Properly handles quoted fields with commas."
