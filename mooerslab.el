@@ -1405,7 +1405,95 @@ Requires an active region selection."
     (while (re-search-forward "\\\\item" end t)
       (replace-match "-"))))
 
-;;; mooerslab-region-csv-to-org-table
+;;; mooerslab-region-csv-to-markdown-table
+;% Convert selected rows in CSV format into a org-table.
+;% It does not try to use these commas as field separators.
+;% Respects the commas inside of strings.
+;% The next three functions are part of the same functionality.
+(defun mooerslab-region-csv-to-markdown-table ()
+  "Convert CSV data in region to GitHub-style markdown table format.
+Assumes first row contains headers. Properly handles quoted fields with commas."
+  (interactive)
+  (if (not (region-active-p))
+      (message "No region selected")
+    (let* ((start (region-beginning))
+           (end (region-end))
+           (csv-text (buffer-substring-no-properties start end))
+           (parsed-rows (mooerslab-parse-csv-text csv-text)))
+      ;; Delete region content
+      (delete-region start end)
+      ;; Insert markdown table header
+      (when parsed-rows
+        ;; Insert header row
+        (insert "| " 
+                (mapconcat 'identity (car parsed-rows) " | ")
+                " |")
+        ;; Insert separator row with correct number of columns
+        (insert "\n| ")
+        (insert (mapconcat (lambda (_) "---") (car parsed-rows) " | "))
+        (insert " |\n")
+        ;; Insert data rows
+        (dolist (row (cdr parsed-rows))
+          (when row
+            (insert "| "
+                    (mapconcat 'identity row " | ")
+                    " |\n")))))))
+
+(defun mooerslab-parse-csv-text (text)
+  "Parse CSV text into a list of rows, each row being a list of fields.
+Properly handles quoted strings containing commas."
+  (let ((rows (split-string text "\n" t)))
+    (mapcar 'mooerslab-parse-csv-row rows)))
+
+(defun mooerslab-parse-csv-row (row)
+  "Parse a CSV row, properly handling quoted strings with commas."
+  (let ((fields nil)
+        (i 0)
+        (len (length row))
+        (current-field "")
+        (in-quotes nil)
+        (quote-char nil))
+
+    (while (< i len)
+      (let ((char (aref row i)))
+        (cond
+         ;; Handle quotes (both single and double)
+         ((and (or (char-equal char ?\") (char-equal char ?\'))
+               (or (not in-quotes) (char-equal char quote-char)))
+          (if in-quotes
+              (setq in-quotes nil)
+            (setq in-quotes t
+                  quote-char char)))
+   
+         ;; Handle commas - only treat as field separators when not in quotes
+         ((and (char-equal char ?,) (not in-quotes))
+          (push current-field fields)
+          (setq current-field ""))
+   
+         ;; Add character to current field
+         (t (setq current-field (concat current-field (string char))))))
+      (setq i (1+ i)))
+
+    ;; Add the last field
+    (push current-field fields)
+       
+    ;; Cleanup: trim spaces and remove surrounding quotes
+    (setq fields (nreverse fields))
+    (mapcar (lambda (field)
+              (setq field (string-trim field))
+              ;; Remove surrounding quotes if present
+              (when (and (> (length field) 1)
+                         (or 
+                          (and (char-equal (aref field 0) ?\")
+                               (char-equal (aref field (1- (length field))) ?\"))
+                          (and (char-equal (aref field 0) ?\')
+                               (char-equal (aref field (1- (length field))) ?\'))))
+                (setq field (substring field 1 (1- (length field)))))
+              field)
+            fields)))
+
+
+;;;; mooerslab-region-csv-to-org-table
 ;% Convert selected rows in CSV format into a org-table.
 ;% It does not try to use these commas as field separators.
 ;% Respects the commas inside of strings.
@@ -1419,7 +1507,7 @@ Assumes first row contains headers. Properly handles quoted fields with commas."
     (let* ((start (region-beginning))
            (end (region-end))
            (csv-text (buffer-substring-no-properties start end))
-           (parsed-rows (mooerslab-parse-csv-text csv-text)))
+           (parsed-rows (mooerslab-parse-csv-text-org csv-text)))
       ;; Delete region content
       (delete-region start end)
       ;; Insert org table header
@@ -1436,13 +1524,13 @@ Assumes first row contains headers. Properly handles quoted fields with commas."
       ;; Align the table
       (org-table-align))))
 
-(defun mooerslab-parse-csv-text (text)
+(defun mooerslab-parse-csv-text-org (text)
   "Parse CSV text into a list of rows, each row being a list of fields.
 Properly handles quoted strings containing commas."
   (let ((rows (split-string text "\n" t)))
-    (mapcar 'mooerslab-parse-csv-row rows)))
+    (mapcar 'mooerslab-parse-csv-row-org rows)))
 
-(defun mooerslab-parse-csv-row (row)
+(defun mooerslab-parse-csv-row-org (row)
   "Parse a CSV row, properly handling quoted strings with commas."
   (let ((fields nil)
         (i 0)
