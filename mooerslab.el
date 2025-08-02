@@ -1608,6 +1608,81 @@ Properly handles quoted strings containing commas."
       (insert "----+"))))
 
 
+;;; mooerslab-org-table-to-markdown
+;% This function is useful when preparing tables in org-mode and 
+;% then exporting them to a GitHub README.md file,
+;% How to use it:
+;% 
+;% 1. Place your cursor anywhere inside an org-mode table
+;% 2. Run M-x mooerslab-org-table-to-markdown
+;% 3. The org table will be replaced with a GitHub-style markdown table
+;% 
+;% Key Technical Details
+;% 
+;% The function uses org-table-get-rectangle, org-table-begin, and org-table-end to work with the current table.
+;% It detects separator rows by checking if all cells in a row match the pattern ^[-+]+$ (contain only - or + characters).
+;% The function preserves all cell content, including any formatting inside the cells.
+;% It handles edge cases like missing trailing pipe characters at the end of rows.
+(defun mooerslab-org-table-to-markdown ()
+  "Convert an org-mode table at point to GitHub-style markdown table.
+The function operates on the current org table, replacing it with GitHub markdown format."
+  (interactive)
+  (save-excursion
+    (let ((table-bounds (org-table-get-rectangle))
+          (table-begin (org-table-begin))
+          (table-end (org-table-end))
+          (first-row t)
+          rows)
+
+      ;; First collect all the rows from the org table
+      (goto-char table-begin)
+      (while (< (point) table-end)
+        (when (looking-at org-table-line-regexp)
+          (let* ((line (buffer-substring-no-properties 
+                        (line-beginning-position) 
+                        (line-end-position)))
+                 ;; Remove outer | characters and split by |
+                 (cells (split-string 
+                         (substring line 1 (- (length line) 
+                                             (if (string-suffix-p "|" line) 1 0)))
+                         "|"))
+                 ;; Trim whitespace from each cell
+                 (trimmed-cells (mapcar #'string-trim cells)))
+            ;; Skip org-mode separator lines (containing only --- or ---)
+            (unless (and (not first-row)
+                         (cl-every (lambda (cell) 
+                                    (string-match-p "^[-+]+$" (string-trim cell)))
+                                  cells))
+              (push trimmed-cells rows)
+              (when first-row
+                (setq first-row nil)))))
+        (forward-line 1))
+
+      ;; Reverse the rows since we collected them in reverse order
+      (setq rows (nreverse rows))
+
+      ;; Delete the original table
+      (delete-region table-begin table-end)
+
+      ;; Insert the markdown table
+      (goto-char table-begin)
+
+      ;; Insert header row
+      (when rows
+        (insert "| " (mapconcat #'identity (car rows) " | ") " |")
+  
+        ;; Insert separator row
+        (insert "\n| ")
+        (insert (mapconcat (lambda (_) "---") (car rows) " | "))
+        (insert " |")
+  
+        ;; Insert data rows
+        (dolist (row (cdr rows))
+          (insert "\n| " (mapconcat #'identity row " | ") " |"))
+  
+        ;; Add final newline
+        (insert "\n")))))
+
 ;;;  count-non-blank-lines
 ;% Count the number of non-blank lines in the current buffer.
 (defun mooerslab-count-non-blank-lines ()
