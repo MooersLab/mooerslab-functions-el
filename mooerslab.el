@@ -2175,6 +2175,57 @@ point relative to the headline with the tag."
   (interactive)
   (find-file "~/e30fewpackages/my-hydras/my-hydras.el"))
 
+;; send to claude
+(defun send-to-claude (start end)
+  "Send the selected region to Claude desktop application.
+   You have to copy it to the clipboard.
+   You still have to hit enter to submit the prompt.
+   Requires xdotool on Linux or osascript on macOS."
+  (interactive "r")
+  (let ((selected-text (buffer-substring-no-properties start end)))
+    ;; Copy the selected text to clipboard
+    (kill-new selected-text)
+  
+    (cond
+     ;; macOS implementation
+     ((eq system-type 'darwin)
+      (shell-command
+       (concat
+        "osascript -e '"
+        "tell application \"Claude\" to activate\n"
+        "delay 0.5\n"
+        "tell application \"System Events\"\n"
+        "  keystroke \"v\" using command down\n"
+        "end tell'")))
+   
+     ;; Linux implementation using xdotool
+     ((eq system-type 'gnu/linux)
+      (shell-command
+       (concat
+        "xdotool search --name \"Claude\" windowactivate --sync && "
+        "xdotool key --clearmodifiers ctrl+v")))
+   
+     ;; Windows implementation
+     ((eq system-type 'windows-nt)
+      (shell-command
+       (concat
+        "powershell -command \""
+        "(New-Object -ComObject WScript.Shell).AppActivate('Claude') | Out-Null; "
+        "Start-Sleep -Milliseconds 500; "
+        "[System.Windows.Forms.SendKeys]::SendWait('^v')\"")))
+   
+     (t (message "Unsupported operating system")))))
+
+;; Instead of a global key binding, use a local binding only in scratch buffer
+(with-current-buffer "*scratch*"
+  (local-set-key (kbd "C-c C-c") 'send-to-claude))
+
+;; To ensure the binding is set every time scratch is created/visited
+(defun setup-scratch-buffer-keys ()
+  "Set up key bindings specific to the scratch buffer."
+  (when (string= (buffer-name) "*scratch*")
+    (local-set-key (kbd "C-c C-c") 'send-to-claude)))
+
 
 ;;; Spawn a new shell with the supplied title
 (defun mooerslab-spawn-shell (name)
