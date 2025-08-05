@@ -2176,16 +2176,15 @@ point relative to the headline with the tag."
   (find-file "~/e30fewpackages/my-hydras/my-hydras.el"))
 
 ;; send to claude
-(defun send-to-claude (start end)
-  "Send the selected region to Claude desktop application.
-   You have to copy it to the clipboard.
-   You still have to hit enter to submit the prompt.
-   Requires xdotool on Linux or osascript on macOS."
+(defun mooerslab-send-to-claude (start end)
+  "Send the selected (and copied) region to the Claude desktop application and submit it.
+   Requires xdotool on Linux or osascript on macOS.
+   The scope of the C-c C-c key binding is limited to the scratch buffer."
   (interactive "r")
   (let ((selected-text (buffer-substring-no-properties start end)))
     ;; Copy the selected text to clipboard
     (kill-new selected-text)
-  
+    
     (cond
      ;; macOS implementation
      ((eq system-type 'darwin)
@@ -2196,15 +2195,19 @@ point relative to the headline with the tag."
         "delay 0.5\n"
         "tell application \"System Events\"\n"
         "  keystroke \"v\" using command down\n"
+        "  delay 1.0\n"
+        "  keystroke return\n"
         "end tell'")))
-   
+     
      ;; Linux implementation using xdotool
      ((eq system-type 'gnu/linux)
       (shell-command
        (concat
         "xdotool search --name \"Claude\" windowactivate --sync && "
-        "xdotool key --clearmodifiers ctrl+v")))
-   
+        "xdotool key --clearmodifiers ctrl+v && "
+        "sleep 1.0 && "
+        "xdotool key Return")))
+     
      ;; Windows implementation
      ((eq system-type 'windows-nt)
       (shell-command
@@ -2212,8 +2215,10 @@ point relative to the headline with the tag."
         "powershell -command \""
         "(New-Object -ComObject WScript.Shell).AppActivate('Claude') | Out-Null; "
         "Start-Sleep -Milliseconds 500; "
-        "[System.Windows.Forms.SendKeys]::SendWait('^v')\"")))
-   
+        "[System.Windows.Forms.SendKeys]::SendWait('^v'); "
+        "Start-Sleep -Milliseconds 200; "
+        "[System.Windows.Forms.SendKeys]::SendWait('{ENTER}')\"")))
+    
      (t (message "Unsupported operating system")))))
 
 ;; Instead of a global key binding, use a local binding only in scratch buffer
