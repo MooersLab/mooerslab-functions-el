@@ -2800,10 +2800,70 @@ Prompts for slide title to use in both section and frametitle."
       (insert beamer-slide))))
 
 
+(defun mooerslab-beamer-acknowledgements ()
+  "Insert a beamer slide for acknowledgements with the standard format.
+Creates a section, frame, and formatted itemized lists for people and funding sources."
+  (interactive)
+  (let ((beamer-slide "\\section{Acknowledgements}
+\\begin{frame}
+\\frametitle{Acknowledgements}
+\\Large{
+\\begin{itemize}[font=$\\bullet$\\scshape\\bfseries]
+    \\item Nathan Shock Data Science Workshop
+\\end{itemize}
+\\vspace{2mm}
+Funding:
+\\begin{itemize}[font=$\\bullet$\\scshape\\bfseries]
+    \\item Warren Delano Memorial Open-Source PyMOL Fellowship
+    \\item NIH: R01 CA242845, R01 AI088011
+    \\item NIH: P20 GM103640, P30 CA225520, P30 AG050911-07S1
+    \\item OCAST HR20-002
+    \\item PHF Team Science Grant
+\\end{itemize}
+}
+\\end{frame}
+\\note{
+  Add speaker notes here for acknowledgements...
+}"))
+
+    ;; Insert the beamer slide at current point
+    (insert beamer-slide)))
 
 
+(defun mooerslab-beamer-title-slide ()
+  "Insert a beamer title slide with the standard format.
+Prompts for the title of the talk and the venue/date information."
+  (interactive)
+  (let* ((talk-title (read-string "Title of the talk: "))
+         (venue-info (read-string "Venue and date (e.g., 'SSRL/LCLS User Meeting\\\\ 25 September 2025'): "))
+         (beamer-slide (format "%%title info
+\\title{%s}
+\\author{\\textbf{Blaine Mooers, PhD \\\\ blaine-mooers@ouhsc.edu \\\\ 405-271-8300}}
+\\institute{{Department of Biochemistry \\& Physiology}\\\\[2pt]{University of Oklahoma Health Sciences, Oklahoma City}}
+%% to hide auto date,use \\date{}
+\\date{%s}
+\\begin{document}%% title slide
+\\section{Title slide}
+{
+\\setbeamertemplate{footline}{} %% no page number here
+\\frame{
+  \\titlepage
+  \\note{
+} } }
+\\note{
+7:06
+Hi, I am Blaine Mooers.
+I will be talking about
+I am an associate professor of Biochemistry and Molecular Biology at the University of Oklahoma Health Sciences Center in Oklahoma City. 
+}" talk-title venue-info))
+     
+    ;; Insert the beamer slide at current point
+    (insert beamer-slide)
 
-
+    ;; Move cursor to the end of the first note section
+    (search-backward "} } }")
+    (search-backward "\\note{")
+    (forward-char 7))) ;; Position cursor after "\\note{" for easy editing
 
 
 ; (defun mooerslab-org-unordered-list-to-latex-itemized-list ()
