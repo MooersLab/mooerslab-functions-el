@@ -2544,10 +2544,266 @@ If not provided, defaults to './Content'."
     (list files-processed files-modified)))
 
 
-    ;; Example usage:
-    ;; (update-tex-root-references)
-    ;; Or with a specific directory:
-    ;; (update-tex-root-references "/Users/blaine/2113mlPrimer/Content")
+;; Example usage:
+;; (update-tex-root-references)
+;; Or with a specific directory:
+;; (update-tex-root-references "/Users/blaine/2113mlPrimer/Content")
+
+
+(defun mooerslab-dash-list-to-beamer-list ()
+  "Convert an org-mode dash list to a beamer-compatible itemized list.
+This function operates on the selected region, converting org-mode
+dash list items into LaTeX beamer itemize environment with proper nesting."
+  (interactive)
+  (if (not (region-active-p))
+      (message "Please select a region with a dash list first")
+    (let* ((region-text (buffer-substring (region-beginning) (region-end)))
+           (lines (split-string region-text "\n" t))
+           (current-level 0)
+           (previous-level 0)
+           (beamer-list "\\begin{itemize}[font=$\\bullet$\\scshape\\bfseries]\n")
+           (current-line ""))
+
+      ;; Process each line of the region
+      (dolist (line lines)
+        (setq current-line (string-trim line))
+        ;; Check if this is a dash list item and calculate its indentation level
+        (when (string-match "^\\(\\s-*\\)-\\s-+\\(.*\\)" current-line)
+          (let* ((indent (match-string 1 current-line))
+                 (item-content (match-string 2 current-line))
+                 (level (/ (length indent) 2))) ;; Assuming 2 spaces per level
+
+            ;; Handle level changes
+            (cond
+             ;; Going deeper (nested level)
+             ((> level current-level)
+              (dotimes (_ (- level current-level))
+                (setq beamer-list (concat beamer-list "    \\begin{itemize}\n"))))
+
+             ;; Going up (ending nested levels)
+             ((< level current-level)
+              (dotimes (_ (- current-level level))
+                (setq beamer-list (concat beamer-list "    \\end{itemize}\n")))))
+
+            ;; Add indentation based on current level
+            (setq beamer-list
+                  (concat beamer-list
+                          (make-string (* (+ 1 level) 4) ? ) ;; 4 spaces per level + base indent
+                          "\\item "
+                          item-content
+                          "\n"))
+
+            ;; Update current level
+            (setq previous-level current-level)
+            (setq current-level level))))
+
+      ;; Close any remaining open itemize environments
+      (dotimes (_ (+ 1 current-level))  ;; +1 for the base level
+        (if (= _ current-level)
+            (setq beamer-list (concat beamer-list "\\end{itemize}"))
+          (setq beamer-list (concat beamer-list "    \\end{itemize}\n"))))
+
+      ;; Replace the region with the new beamer list
+      (delete-region (region-beginning) (region-end))
+      (insert beamer-list))))
+
+
+
+(defun mooerslab-dash-to-beamer-slide ()
+  "Convert an org-mode dash list to a complete beamer slide with section.
+This function operates on the selected region, converting org-mode
+dash list items into a complete beamer frame with centered itemized list.
+It prompts for a title to use in both section and frametitle,
+and leaves a prompt inside the note section."
+  (interactive)
+  (if (not (region-active-p))
+      (message "Please select a region with a dash list first")
+    (let* ((slide-title (read-string "Slide title: "))
+           (region-text (buffer-substring (region-beginning) (region-end)))
+           (lines (split-string region-text "\n" t))
+           (current-level 0)
+           (previous-level 0)
+           (item-list "")
+           (current-line "")
+           (beamer-slide "\\section{%s}\n\\begin{frame}\n  \\frametitle{%s}\n  \\begin{center}\n"))
+
+      ;; Format the section and frame title
+      (setq beamer-slide (format beamer-slide slide-title slide-title))
+
+      ;; Add the beginning of the itemize environment
+      (setq item-list "\\begin{itemize}[font=$\\bullet$\\scshape\\bfseries]\n")
+
+      ;; Process each line of the region
+      (dolist (line lines)
+        (setq current-line (string-trim line))
+        ;; Check if this is a dash list item and calculate its indentation level
+        (when (string-match "^\\(\\s-*\\)-\\s-+\\(.*\\)" current-line)
+          (let* ((indent (match-string 1 current-line))
+                 (item-content (match-string 2 current-line))
+                 (level (/ (length indent) 2))) ;; Assuming 2 spaces per level
+
+            ;; Handle level changes
+            (cond
+             ;; Going deeper (nested level)
+             ((> level current-level)
+              (dotimes (_ (- level current-level))
+                (setq item-list (concat item-list "    \\begin{itemize}\n"))))
+
+             ;; Going up (ending nested levels)
+             ((< level current-level)
+              (dotimes (_ (- current-level level))
+                (setq item-list (concat item-list "    \\end{itemize}\n")))))
+
+            ;; Add indentation based on current level
+            (setq item-list
+                  (concat item-list
+                          (make-string (* (+ 1 level) 4) ? ) ;; 4 spaces per level + base indent
+                          "\\item "
+                          item-content
+                          "\n"))
+
+            ;; Update current level
+            (setq previous-level current-level)
+            (setq current-level level))))
+
+      ;; Close any remaining open itemize environments
+      (dotimes (_ (+ 1 current-level))  ;; +1 for the base level
+        (if (= _ current-level)
+            (setq item-list (concat item-list "\\end{itemize}"))
+          (setq item-list (concat item-list "    \\end{itemize}\n"))))
+
+      ;; Complete the slide with center environment and frame closing
+      ;; Note contains a prompt for the presenter
+      (setq beamer-slide (concat beamer-slide
+                                 item-list
+                                 "\n\\end{center}\n\\end{frame}"
+                                 "\n\\note{\n  Add speaker notes here for " slide-title "...\n  }\n"))
+
+      ;; Replace the region with the new beamer slide
+      (delete-region (region-beginning) (region-end))
+      (insert beamer-slide))))
+
+
+(defun mooerslab-beamer-figure-slide ()
+  "Create a beamer slide with a centered figure.
+Prompts for slide title and image file prefix, then generates a complete
+beamer frame with a centered figure and note section."
+  (interactive)
+  (let* ((slide-title (read-string "Slide title: "))
+         (image-prefix (read-string "Image file prefix (without extension): "))
+         (beamer-slide (concat "\\section{" slide-title "}\n"
+                              "\\begin{frame}\n"
+                              "\\frametitle{" slide-title "}\n"
+                              "\\begin{center}\n"
+                              "    \\includegraphics[width=0.99\\textwidth, angle=0]{./Figures/" image-prefix "}\n"
+                              "\\end{center}\n"
+                              "\\end{frame}\n"
+                              "\\note{\n"
+                              "  Add speaker notes here for " slide-title "...\n"
+                              "  }\n")))
+
+    ;; Insert the beamer slide at current point
+    (insert beamer-slide)))
+
+
+(defun mooerslab-org-table-to-beamer-slide ()
+  "Convert an org-mode table to a LaTeX table in a beamer slide.
+This function operates on the selected region containing an org-mode table,
+converts it to a LaTeX table, and wraps it in a beamer slide with section.
+The leftmost column will be left-aligned, while other columns remain centered.
+Prompts for slide title to use in both section and frametitle."
+  (interactive)
+  (if (not (region-active-p))
+      (message "Please select a region with an org-mode table first")
+    (let* ((slide-title (read-string "Slide title: "))
+           (region-text (buffer-substring (region-beginning) (region-end)))
+           (org-table-lines (split-string region-text "\n" t))
+           (has-header nil)
+           (column-count 0)
+           (latex-table "")
+           (beamer-slide "\\section{%s}\n\\begin{frame}\n  \\frametitle{%s}\n  \\begin{center}\n"))
+
+      ;; Format the section and frame title
+      (setq beamer-slide (format beamer-slide slide-title slide-title))
+
+      ;; Start LaTeX table
+      (setq latex-table "\\begin{table}\n  \\centering\n  \\begin{tabular}{")
+
+      ;; Determine number of columns and if there's a header
+      (when org-table-lines
+        (let ((first-line (car org-table-lines)))
+          (when (string-match-p "^\\s-*|[-+]+|\\s-*$" first-line)
+            (setq has-header t))
+
+          ;; Count columns from first content line
+          (let ((content-line (if has-header
+                                (if (> (length org-table-lines) 2)
+                                    (nth 2 org-table-lines)
+                                  (car org-table-lines))
+                                (car org-table-lines))))
+            (setq column-count (- (length (split-string content-line "|" t)) 0)))))
+
+      ;; Add column specifiers - leftmost is 'l', others are 'c'
+      (setq latex-table (concat latex-table "l")) ;; First column left-aligned
+      (dotimes (_ (1- column-count))
+        (setq latex-table (concat latex-table "c"))) ;; Remaining columns centered
+      (setq latex-table (concat latex-table "}\n    \\toprule\n"))
+
+      ;; Process table rows
+      (let ((is-header t)
+            (header-done nil)
+            (skip-line nil))
+        (dolist (line org-table-lines)
+          (setq skip-line nil)
+
+          ;; Skip separator lines
+          (when (string-match-p "^\\s-*|[-+]+|\\s-*$" line)
+            (setq skip-line t))
+
+          (unless skip-line
+            ;; Process table row
+            (let* ((cells (split-string line "|" t))
+                   (trimmed-cells (mapcar #'string-trim cells))
+                   (latex-row "    "))
+
+              ;; Build the row
+              (let ((cell-index 0))
+                (dolist (cell trimmed-cells)
+                  (setq latex-row (concat latex-row cell))
+                  (setq cell-index (1+ cell-index))
+                  (when (< cell-index (length trimmed-cells))
+                    (setq latex-row (concat latex-row " & ")))))
+
+              ;; Add the row to the table
+              (setq latex-table (concat latex-table latex-row " \\\\\n"))
+
+              ;; Add midrule after header
+              (when (and is-header has-header (not header-done))
+                (setq latex-table (concat latex-table "    \\midrule\n"))
+                (setq header-done t)
+                (setq is-header nil))))))
+
+      ;; Complete the LaTeX table
+      (setq latex-table (concat latex-table "    \\bottomrule\n  \\end{tabular}\n"))
+
+      ;; Close the table environment
+      (setq latex-table (concat latex-table "\\end{table}\n"))
+
+      ;; Complete the slide
+      (setq beamer-slide (concat beamer-slide
+                                 latex-table
+                                 "\\end{center}\n\\end{frame}"
+                                 "\n\\note{\n  Add speaker notes here for " slide-title "...\n  }\n"))
+
+      ;; Replace the region with the new beamer slide
+      (delete-region (region-beginning) (region-end))
+      (insert beamer-slide))))
+
+
+
+
+
+
 
 
 ; (defun mooerslab-org-unordered-list-to-latex-itemized-list ()
