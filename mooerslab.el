@@ -2159,7 +2159,7 @@ point relative to the headline with the tag."
 (defun mooerslab-open-mooerslab-functions ()
   "Open the mooerslab.el file for editing. Edit the path to suit your needs."
   (interactive)
-  (find-file "~/6112MooersLabGitHubLabRepos/mooerslab-functions-el/mooerslab-functions.el"))
+  (find-file "~/6112MooersLabGitHubLabRepos/mooerslab-functions-el/mooerslab.el"))
 
 
 ;;; Reload the my-hydras file after editing it in Emacs.
@@ -2865,6 +2865,38 @@ I am an associate professor of Biochemistry and Molecular Biology at the Univers
     (search-backward "\\note{")
     (forward-char 7))) ;; Position cursor after "\\note{" for easy editing
 
+
+(defun mooerslab-beamer-code-block-slide ()
+  "Insert a beamer slide with a code block using the standard format.
+Prompts for the title of the slide, which is also used for the section.
+Positions cursor in the code block for immediate editing."
+  (interactive)
+  (let* ((slide-title (read-string "Title of the slide: "))
+         (beamer-slide (format "%%%%%%%%%%%%%%%%%%%% slide No. %%%%%%%%%%%%%%%%%%%%
+\\section{%s}
+\\defverbatim[colored]\\exampleCodeC{
+\\Large{
+\\begin{bashcode}
+    Insert code here indented by four spaces
+\\end{bashcode}
+}
+}
+\\begin{frame}
+\\frametitle{%s}
+\\exampleCodeC
+\\footnotesize{\\url{https://github.com/clojupyter/clojupyter/blob/master/doc/library.md}}
+\\end{frame}
+\\note{
+  Add speaker notes here for %s...
+}" slide-title slide-title slide-title)))
+
+    ;; Insert the beamer slide at current point
+    (insert beamer-slide)
+
+    ;; Move cursor to the code block for immediate editing
+    (search-backward "Insert code here indented by four spaces")
+    (replace-match "")
+    (forward-char 4))) ;; Position cursor after indentation
 
 ; (defun mooerslab-org-unordered-list-to-latex-itemized-list ()
 ;   "Convert org-mode unordered list at point to LaTeX itemized list."
