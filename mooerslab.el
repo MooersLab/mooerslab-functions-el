@@ -2898,6 +2898,50 @@ Positions cursor in the code block for immediate editing."
     (replace-match "")
     (forward-char 4))) ;; Position cursor after indentation
 
+
+(defun mooerslab-beamer-aligned-equations ()
+  "Insert a beamer slide with aligned equations using the standard format.
+Prompts for the title of the slide, which is also used for the section.
+Positions cursor in the equation block for immediate editing."
+  (interactive)
+  (let* ((slide-title (read-string "Title of the slide: "))
+         (beamer-slide (format "\\section{%s}
+\\begin{frame}
+\\frametitle{%s}
+\\Large{
+\\begin{center}
+\\begin{equation}
+\\begin{aligned}
+y_{i} & \\sim \\operatorname{Normal}\\left(\\mu_{i}, \\sigma\\right) \\\\
+\\mu_{i} &=\\alpha+\\beta x_{i} \\\\
+\\alpha & \\sim \\operatorname{Normal}(0,100) \\\\
+\\beta & \\sim \\operatorname{Normal}(0,1) \\\\
+\\sigma & \\sim \\operatorname{Exponential}(1)
+\\end{aligned}
+\\end{equation}
+\\end{center}
+}
+\\end{frame}
+\\note{
+  Add speaker notes here for %s...
+}" slide-title slide-title slide-title)))
+
+    ;; Insert the beamer slide at current point
+    (insert beamer-slide)
+
+    ;; Move cursor to the equation block for immediate editing
+    (search-backward "\\begin{aligned}")
+    (forward-line 1)
+    (beginning-of-line)))
+
+
+
+
+
+
+
+
+
 ; (defun mooerslab-org-unordered-list-to-latex-itemized-list ()
 ;   "Convert org-mode unordered list at point to LaTeX itemized list."
 ; Busted due to beg in org-mode
