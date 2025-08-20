@@ -2935,14 +2935,34 @@ y_{i} & \\sim \\operatorname{Normal}\\left(\\mu_{i}, \\sigma\\right) \\\\
     (beginning-of-line)))
 
 
+(defun mooerslab-beamer-video ()
+  "Insert a beamer slide with a video element using the standard format.
+Prompts for the title of the slide, image file prefix, and video path.
+Uses the title for both section and frametitle."
+  (interactive)
+  (let* ((slide-title (read-string "Title of the slide: "))
+         (image-prefix (read-string "Image file prefix (without path/extension): "))
+         (video-path (read-string "Video file path (e.g., ./videos/intro212.mov): "))
+         (beamer-slide (format "\\section{%s}
+\\begin{frame}
+\\frametitle{%s}
+\\centering
+    \\movie[externalviewer]{\\includegraphics[width=0.7\\textwidth]{Figures/%s}}{%s}\\\\
+%%\\Large{open ACA abstracts,<open:https://virtual.oxfordabstracts.com/\\#/event/29303/homepage>}
+\\end{frame}
+\\note{
+  Add speaker notes here for %s...
+}" slide-title slide-title image-prefix video-path slide-title)))
+
+    ;; Insert the beamer slide at current point
+    (insert beamer-slide)
+
+    ;; Move cursor to the note section for immediate editing
+    (search-backward "Add speaker notes here")
+        (beginning-of-line)))
 
 
-
-
-
-
-
-; (defun mooerslab-org-unordered-list-to-latex-itemized-list ()
+        ; (defun mooerslab-org-unordered-list-to-latex-itemized-list ()
 ;   "Convert org-mode unordered list at point to LaTeX itemized list."
 ; Busted due to beg in org-mode
 ;   (interactive)
