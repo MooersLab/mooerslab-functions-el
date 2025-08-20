@@ -2962,7 +2962,75 @@ Uses the title for both section and frametitle."
         (beginning-of-line)))
 
 
-        ; (defun mooerslab-org-unordered-list-to-latex-itemized-list ()
+(defun mooerslab-beamer-two-columns-dashed-lists ()
+  "Convert two org-mode dashed lists to a two-column beamer slide.
+Takes two selected regions with org-mode dash lists and converts them
+to a two-column beamer slide with itemized lists.
+Prompts for the slide title and optional footnote text."
+  (interactive)
+  (if (not (region-active-p))
+      (message "Please select a region with two dash lists separated by a blank line")
+    (let* ((slide-title (read-string "Title of the slide: "))
+           (footnote-text (read-string "Optional footnote text (leave empty for none): "))
+           (region-text (buffer-substring (region-beginning) (region-end)))
+           (lists (split-string region-text "\n\n" t))
+           (left-list-text (if (>= (length lists) 1) (car lists) ""))
+           (right-list-text (if (>= (length lists) 2) (nth 1 lists) ""))
+           (left-items "")
+           (right-items "")
+           (beamer-slide-template "\\section{%s}
+\\begin{frame}
+\\frametitle{%s}
+\\large{
+\\begin{columns}
+    \\begin{column}{0.45\\textwidth}
+        \\begin{itemize}[font=$\\bullet$\\scshape\\bfseries]
+%s
+        \\end{itemize}
+    \\end{column}
+    \\begin{column}{0.45\\textwidth}
+        \\begin{itemize}[font=$\\bullet$\\scshape\\bfseries]
+%s
+        \\end{itemize}
+    \\end{column}
+    \\end{columns}
+    \\vspace{2em}
+    %s
+    }
+\\end{frame}
+\\note{
+  Add speaker notes here for %s...
+}"))
+;; Process left column list
+(dolist (line (split-string left-list-text "\n" t))
+  (when (string-match "^\\s-*-\\s-+\\(.*\\)" line)
+    (let ((item-content (match-string 1 line)))
+      (setq left-items (concat left-items "            \\item " item-content "\n")))))
+
+;; Process right column list
+(dolist (line (split-string right-list-text "\n" t))
+  (when (string-match "^\\s-*-\\s-+\\(.*\\)" line)
+    (let ((item-content (match-string 1 line)))
+      (setq right-items (concat right-items "            \\item " item-content "\n")))))
+
+;; Format the slide
+(let ((beamer-slide (format beamer-slide-template 
+                            slide-title 
+                            slide-title 
+                            left-items 
+                            right-items 
+                            (or footnote-text "")
+                            slide-title)))
+
+  ;; Replace the region with the new beamer slide
+  (delete-region (region-beginning) (region-end))
+  (insert beamer-slide)
+
+  ;; Move cursor to the note section
+  (search-backward "Add speaker notes here")
+    (beginning-of-line)))))
+
+; (defun mooerslab-org-unordered-list-to-latex-itemized-list ()
 ;   "Convert org-mode unordered list at point to LaTeX itemized list."
 ; Busted due to beg in org-mode
 ;   (interactive)
