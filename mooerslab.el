@@ -14,6 +14,205 @@
 
 ;;; Code:
 
+
+
+
+(defun mooerslab-count-lines ()
+  "Interactively count lines in an elisp or org-mode file.
+Prompts for a file and returns annotated line counts."
+  (interactive)
+  (let* ((file (read-file-name "Select elisp or org-mode file: " 
+                               nil nil t nil
+                               (lambda (f)
+                                 (or (string-match "\\.el\\'" f)
+                                     (string-match "\\.org\\'" f)))))
+         (file-extension (file-name-extension file))
+         (total-lines 0)
+         (code-lines 0)
+         (comment-lines 0)
+         (blank-lines 0)
+         (header-lines 0)
+         (result-buffer (get-buffer-create "*Line Count Results*")))
+    
+    (if (not (file-exists-p file))
+        (message "File does not exist: %s" file)
+      
+      (with-temp-buffer
+        (insert-file-contents file)
+        (goto-char (point-min))
+        
+        (while (not (eobp))
+          (let ((line (buffer-substring-no-properties
+                       (line-beginning-position)
+                       (line-end-position))))
+            (setq total-lines (1+ total-lines))
+            
+            (cond
+             ;; Blank line
+             ((string-match "^[[:space:]]*$" line)
+              (setq blank-lines (1+ blank-lines)))
+             
+             ;; For elisp files
+             ((string= file-extension "el")
+              (cond
+               ;; Comment line
+               ((string-match "^[[:space:]]*;" line)
+                (setq comment-lines (1+ comment-lines)))
+               ;; Code line
+               (t
+                (setq code-lines (1+ code-lines)))))
+             
+             ;; For org-mode files
+             ((string= file-extension "org")
+              (cond
+               ;; Header line
+               ((string-match "^\\*+ " line)
+                (setq header-lines (1+ header-lines))
+                (setq code-lines (1+ code-lines)))
+               ;; Comment line
+               ((string-match "^[[:space:]]*#\\+\\|^[[:space:]]*#[^+]" line)
+                (setq comment-lines (1+ comment-lines)))
+               ;; Content line
+               (t
+                (setq code-lines (1+ code-lines))))))
+            
+            (forward-line 1))))
+      
+      ;; Display results
+      (with-current-buffer result-buffer
+        (erase-buffer)
+        (insert (format "Line Count Analysis for: %s\n" file))
+        (insert (make-string 50 ?=))
+        (insert "\n\n")
+        (insert (format "File Type:        %s\n" 
+                       (if (string= file-extension "el") "Emacs Lisp" "Org-mode")))
+        (insert (format "Total Lines:      %d\n" total-lines))
+        (insert (format "Content Lines:    %d (%.1f%%)\n" 
+                       code-lines 
+                       (if (> total-lines 0)
+                           (* 100.0 (/ (float code-lines) total-lines))
+                         0)))
+        (when (string= file-extension "org")
+          (insert (format "  Header Lines:   %d\n" header-lines)))
+        (insert (format "Comment Lines:    %d (%.1f%%)\n" 
+                       comment-lines
+                       (if (> total-lines 0)
+                           (* 100.0 (/ (float comment-lines) total-lines))
+                         0)))
+        (insert (format "Blank Lines:      %d (%.1f%%)\n" 
+                       blank-lines
+                       (if (> total-lines 0)
+                           (* 100.0 (/ (float blank-lines) total-lines))
+                         0)))
+        (insert "\n")
+        (insert (make-string 50 ?-))
+        (insert "\n")
+        (insert (format "Effective Lines:  %d (non-blank)\n" 
+                       (- total-lines blank-lines))))
+      
+      ;; Show the result buffer
+      (display-buffer result-buffer)
+      
+      ;; Return the annotated list
+      (list :file file
+            :type (if (string= file-extension "el") "elisp" "org-mode")
+            :total-lines total-lines
+            :content-lines code-lines
+            :comment-lines comment-lines
+            :blank-lines blank-lines
+            :header-lines (if (string= file-extension "org") header-lines nil)))))
+
+
+;; Function to create note and open PDF
+(defun mooerslab-citar-open-org-roam-note ()
+  "Open or create an org-roam literature note and associated PDF. Specify type == 'paper' or 'book'."
+  (interactive)
+  (let* ((key (citar-select-ref))
+         (entry (citar-get-entry key))
+         (title (citar-get-value "title" entry))
+         (author (citar-get-value "author" entry))
+         (year (citar-get-value "year" entry))
+         (journal (citar-get-value "journal" entry))
+         (volume (citar-get-value "volume" entry))
+         (pages (citar-get-value "pages" entry))
+         (doi (citar-get-value "doi" entry))
+         (url (citar-get-value "url" entry))
+         ;; Get PDF file paths from both directories
+         (pdf-paths (list (concat "~/0papersLabeled/" key ".pdf")
+                         (concat "~/0booksLabeled/" key ".pdf")))
+         ;; Find first existing PDF
+         (pdf-path (car (seq-filter #'file-exists-p pdf-paths))))
+
+    ;; Delete other windows to start fresh
+    (delete-other-windows)
+
+    ;; Create the note using org-roam's capture system
+    (org-roam-capture-
+     :templates
+     '(("l" "literature type: paper or book" plain
+        "\n* Source
+:PROPERTIES:
+:AUTHOR: ${author}
+:YEAR: ${year}
+:TITLE: ${title}
+:JOURNAL: ${journal}
+:VOLUME: ${volume}
+:PAGES: ${pages}
+:DOI: ${doi}
+:URL: ${url}
+:TYPE: ${=type=}
+:END:
+
+* Summary\n\n
+* Table of Tibbits\n
+|-------+-------------------------------------------------------------------------------------------------------+----------|\n
+| Pages | Tibbits of knowledge, factoids, results, discussion points, or insights paraphrased in your own words | Keywords |\n
+|-------+-------------------------------------------------------------------------------------------------------+----------|\n
+|       |                                                                                                       |          |\n
+|       |                                                                                                       |          |\n
+|       |                                                                                                       |          |\n
+|       |                                                                                                       |          |\n
+|-------+-------------------------------------------------------------------------------------------------------+----------|\n\n
+* Keywords
+- \n- \n- \n- \n
+* Abbreviations
+- \n- \n- \n- \n
+* Equations
+- \n- \n- \n- \n
+* Potential Uses
+- \n- \n- \n- \n
+* Where cited
+- \n- \n- \n- \n
+* Related bibtex entries\n
+- \n- \n
+
+"
+        :if-new (file+head "literature/${citekey}.org"
+                          "#+title: ${title}\n#+filetags: :literature:citation:\n#+roam_refs: [cite:@${citekey}]\n")
+        :immediate-finish t
+        :unnarrowed t))
+     :info (list :citekey key
+                 :title title
+                 :author author
+                 :year year
+                 :journal journal
+                 :volume volume
+                 :pages pages
+                 :doi doi
+                 :url url
+                 :type (if (string-match-p "book" (or (citar-get-value "type" entry) ""))
+                          "book" "paper"))
+     :node (org-roam-node-create :title title)
+     :props '(:finalize find-file))
+
+    ;; Split window and open PDF if found
+    (when pdf-path
+      (split-window-right)
+      (other-window 1)
+      (find-file pdf-path)
+      (other-window -1))))  ; Return to note window
+
+
 (defun mooerslab-wrap-book-pdf-filename-prefixes-as-org-links (beg end)
   "Transform a selection of book PDF filenames into org-mode links.
 Each line in the region from BEG to END should contain a PDF filename without the extension pdf.
@@ -1423,7 +1622,7 @@ Assumes first row contains headers. Properly handles quoted fields with commas."
       ;; Insert markdown table header
       (when parsed-rows
         ;; Insert header row
-        (insert "| " 
+        (insert "| "
                 (mapconcat 'identity (car parsed-rows) " | ")
                 " |")
         ;; Insert separator row with correct number of columns
@@ -1462,26 +1661,26 @@ Properly handles quoted strings containing commas."
               (setq in-quotes nil)
             (setq in-quotes t
                   quote-char char)))
-   
+
          ;; Handle commas - only treat as field separators when not in quotes
          ((and (char-equal char ?,) (not in-quotes))
           (push current-field fields)
           (setq current-field ""))
-   
+
          ;; Add character to current field
          (t (setq current-field (concat current-field (string char))))))
       (setq i (1+ i)))
 
     ;; Add the last field
     (push current-field fields)
-       
+
     ;; Cleanup: trim spaces and remove surrounding quotes
     (setq fields (nreverse fields))
     (mapcar (lambda (field)
               (setq field (string-trim field))
               ;; Remove surrounding quotes if present
               (when (and (> (length field) 1)
-                         (or 
+                         (or
                           (and (char-equal (aref field 0) ?\")
                                (char-equal (aref field (1- (length field))) ?\"))
                           (and (char-equal (aref field 0) ?\')
@@ -1510,7 +1709,7 @@ Assumes first row contains headers. Properly handles quoted fields with commas."
       (delete-region start end)
       ;; Insert org table header
       (when parsed-rows
-        (insert "| " 
+        (insert "| "
                 (mapconcat 'identity (car parsed-rows) " | ")
                 " |\n|-\n")
         ;; Insert data rows
@@ -1536,7 +1735,7 @@ Properly handles quoted strings containing commas."
         (current-field "")
         (in-quotes nil)
         (quote-char nil))
-    
+
     (while (< i len)
       (let ((char (aref row i)))
         (cond
@@ -1547,26 +1746,26 @@ Properly handles quoted strings containing commas."
               (setq in-quotes nil)
             (setq in-quotes t
                   quote-char char)))
-         
+
          ;; Handle commas - only treat as field separators when not in quotes
          ((and (char-equal char ?,) (not in-quotes))
           (push current-field fields)
           (setq current-field ""))
-         
+
          ;; Add character to current field
          (t (setq current-field (concat current-field (string char))))))
       (setq i (1+ i)))
-    
+
     ;; Add the last field
     (push current-field fields)
-    
+
     ;; Cleanup: trim spaces and remove surrounding quotes
     (setq fields (nreverse fields))
     (mapcar (lambda (field)
               (setq field (string-trim field))
               ;; Remove surrounding quotes if present
               (when (and (> (length field) 1)
-                         (or 
+                         (or
                           (and (char-equal (aref field 0) ?\")
                                (char-equal (aref field (1- (length field))) ?\"))
                           (and (char-equal (aref field 0) ?\')
@@ -1607,16 +1806,16 @@ Properly handles quoted strings containing commas."
 
 
 ;;; mooerslab-org-table-to-markdown
-;% This function is useful when preparing tables in org-mode and 
+;% This function is useful when preparing tables in org-mode and
 ;% then exporting them to a GitHub README.md file,
 ;% How to use it:
-;% 
+;%
 ;% 1. Place your cursor anywhere inside an org-mode table
 ;% 2. Run M-x mooerslab-org-table-to-markdown
 ;% 3. The org table will be replaced with a GitHub-style markdown table
-;% 
+;%
 ;% Key Technical Details
-;% 
+;%
 ;% The function uses org-table-get-rectangle, org-table-begin, and org-table-end to work with the current table.
 ;% It detects separator rows by checking if all cells in a row match the pattern ^[-+]+$ (contain only - or + characters).
 ;% The function preserves all cell content, including any formatting inside the cells.
@@ -1636,19 +1835,19 @@ The function operates on the current org table, replacing it with GitHub markdow
       (goto-char table-begin)
       (while (< (point) table-end)
         (when (looking-at org-table-line-regexp)
-          (let* ((line (buffer-substring-no-properties 
-                        (line-beginning-position) 
+          (let* ((line (buffer-substring-no-properties
+                        (line-beginning-position)
                         (line-end-position)))
                  ;; Remove outer | characters and split by |
-                 (cells (split-string 
-                         (substring line 1 (- (length line) 
+                 (cells (split-string
+                         (substring line 1 (- (length line)
                                              (if (string-suffix-p "|" line) 1 0)))
                          "|"))
                  ;; Trim whitespace from each cell
                  (trimmed-cells (mapcar #'string-trim cells)))
             ;; Skip org-mode separator lines (containing only --- or ---)
             (unless (and (not first-row)
-                         (cl-every (lambda (cell) 
+                         (cl-every (lambda (cell)
                                     (string-match-p "^[-+]+$" (string-trim cell)))
                                   cells))
               (push trimmed-cells rows)
@@ -1668,16 +1867,16 @@ The function operates on the current org table, replacing it with GitHub markdow
       ;; Insert header row
       (when rows
         (insert "| " (mapconcat #'identity (car rows) " | ") " |")
-  
+
         ;; Insert separator row
         (insert "\n| ")
         (insert (mapconcat (lambda (_) "---") (car rows) " | "))
         (insert " |")
-  
+
         ;; Insert data rows
         (dolist (row (cdr rows))
           (insert "\n| " (mapconcat #'identity row " | ") " |"))
-  
+
         ;; Add final newline
         (insert "\n")))))
 
@@ -2182,7 +2381,7 @@ point relative to the headline with the tag."
   (let ((selected-text (buffer-substring-no-properties start end)))
     ;; Copy the selected text to clipboard
     (kill-new selected-text)
-    
+
     (cond
      ;; macOS implementation
      ((eq system-type 'darwin)
@@ -2196,7 +2395,7 @@ point relative to the headline with the tag."
         "  delay 1.0\n"
         "  keystroke return\n"
         "end tell'")))
-     
+
      ;; Linux implementation using xdotool
      ((eq system-type 'gnu/linux)
       (shell-command
@@ -2205,7 +2404,7 @@ point relative to the headline with the tag."
         "xdotool key --clearmodifiers ctrl+v && "
         "sleep 1.0 && "
         "xdotool key Return")))
-     
+
      ;; Windows implementation
      ((eq system-type 'windows-nt)
       (shell-command
@@ -2216,7 +2415,7 @@ point relative to the headline with the tag."
         "[System.Windows.Forms.SendKeys]::SendWait('^v'); "
         "Start-Sleep -Milliseconds 200; "
         "[System.Windows.Forms.SendKeys]::SendWait('{ENTER}')\"")))
-    
+
      (t (message "Unsupported operating system")))))
 
 ;; Instead of a global key binding, use a local binding only in scratch buffer
@@ -2278,13 +2477,13 @@ Useful for feeding into Claude to make atomic notes from a chunk of prose."
          (all-nodes (org-roam-db-query [:select [id file title] :from nodes
                                          :where (= level 0)]))
          (all-tags (org-roam-db-query [:select [node-id tag] :from tags])))
-    
+
     ;; Clear the buffer and set it up
     (with-current-buffer buffer
       (erase-buffer)
       (org-mode)
       (insert "#+TITLE: Org-Roam Notes: Titles and Tags\n\n")
-      
+
       ;; Process each node
       (dolist (node all-nodes)
         (let* ((id (nth 0 node))
@@ -2295,21 +2494,21 @@ Useful for feeding into Claude to make atomic notes from a chunk of prose."
                                                (string= (car tag-info) id))
                                              all-tags)))
                (tags-str (if node-tags
-                             (concat " " (mapconcat (lambda (tag) 
+                             (concat " " (mapconcat (lambda (tag)
                                                       (format ":%s:" tag))
                                                     node-tags
                                                     " "))
                            "")))
-          
+
           ;; Insert the title and tags
-          (insert (format "* %s%s\n" 
+          (insert (format "* %s%s\n"
                           (or title (file-name-nondirectory file) "Untitled")
                           tags-str))))
-      
+
       ;; Finalize buffer setup
       (goto-char (point-min))
       (org-overview))
-    
+
     ;; Switch to the buffer
     (switch-to-buffer buffer)
     (message "Found %d org-roam notes" (length all-nodes))))
@@ -2328,7 +2527,7 @@ Useful for feeding into Claude to make atomic notes from a chunk of prose and ha
 This is a temporary placeholder for the missing flyover-mode."
       (interactive)
       nil))
-  
+
   (let* ((buffer-name "*Org-Roam Titles, Tags, and Backlinks*")
          (buffer (get-buffer-create buffer-name))
          (all-nodes (org-roam-db-query [:select [id file title] :from nodes
@@ -2343,7 +2542,7 @@ This is a temporary placeholder for the missing flyover-mode."
       (erase-buffer)
       (org-mode)
       (insert "#+TITLE: Org-Roam Notes: Titles, Tags, and Backlinks\n\n")
-  
+
       ;; Process each node
       (dolist (node all-nodes)
         (let* ((id (nth 0 node))
@@ -2354,7 +2553,7 @@ This is a temporary placeholder for the missing flyover-mode."
                                                (string= (car tag-info) id))
                                              all-tags)))
                (tags-str (if node-tags
-                             (concat " " (mapconcat (lambda (tag) 
+                             (concat " " (mapconcat (lambda (tag)
                                                       (format ":%s:" tag))
                                                     node-tags
                                                     " "))
@@ -2364,18 +2563,18 @@ This is a temporary placeholder for the missing flyover-mode."
                                         (string= (cadr link) id))
                                       all-links))
                (backlink-ids (mapcar #'car backlinks)))
-      
+
           ;; Insert the title and tags
-          (insert (format "* %s%s\n" 
+          (insert (format "* %s%s\n"
                           (or title (file-name-nondirectory file) "Untitled")
                           tags-str))
-      
+
           ;; Add backlinks section if there are any
           (when backlinks
             (insert "** Backlinks:\n")
             ;; For each backlink, find the node info and display title and tags
             (dolist (backlink-id backlink-ids)
-              (let* ((backlink-node (car (seq-filter (lambda (n) 
+              (let* ((backlink-node (car (seq-filter (lambda (n)
                                                        (string= (car n) backlink-id))
                                                      all-nodes)))
                      (backlink-title (and backlink-node (nth 2 backlink-node)))
@@ -2385,20 +2584,20 @@ This is a temporary placeholder for the missing flyover-mode."
                                                          (string= (car tag-info) backlink-id))
                                                        all-tags)))
                      (backlink-tags-str (if backlink-tags
-                                           (concat " " (mapconcat (lambda (tag) 
+                                           (concat " " (mapconcat (lambda (tag)
                                                                     (format ":%s:" tag))
                                                                   backlink-tags
                                                                   " "))
                                          "")))
                 (if backlink-node
-                    (insert (format "   - [[id:%s][%s]]%s\n" 
+                    (insert (format "   - [[id:%s][%s]]%s\n"
                                    backlink-id
-                                   (or backlink-title 
-                                       (file-name-nondirectory backlink-file) 
+                                   (or backlink-title
+                                       (file-name-nondirectory backlink-file)
                                        "Untitled")
                                    backlink-tags-str))
                   (insert (format "   - Unknown node: %s\n" backlink-id))))))))
-  
+
       ;; Finalize buffer setup
       (goto-char (point-min))
       (org-overview))
@@ -2430,14 +2629,14 @@ Arguments:
 
     (if (null org-files)
         (message "No .org files found in %s" dir)
-  
+
       ;; Process each file
       (dolist (file org-files)
         (let ((file-changed nil))
           (with-temp-buffer
             (insert-file-contents file)
             (goto-char (point-min))
-        
+
             ;; Replace all occurrences in the file
             (let ((replacements 0))
               (while (search-forward old-text nil t)
@@ -2445,13 +2644,13 @@ Arguments:
                 (setq replacements (1+ replacements))
                 (setq count (1+ count))
                 (setq file-changed t))
-          
+
               ;; Save the file if changes were made
               (when file-changed
                 (setq files-changed (1+ files-changed))
                 (write-region (point-min) (point-max) file)
                 (message "Updated %s - %d replacements" file replacements)))))
-  
+
       ;; Report the results
       (message "Replaced %d occurrences of '%s' with '%s' in %d out of %d files"
                count old-text new-text files-changed (length org-files))))))
@@ -2514,22 +2713,22 @@ If not provided, defaults to './Content'."
     ;; Process all .tex files in the directory
     (dolist (file (directory-files content-dir t "\\.tex$"))
       (setq files-processed (1+ files-processed))
-  
+
       ;; Read the file content
       (with-temp-buffer
         (insert-file-contents file)
         (goto-char (point-min))
-    
+
         ;; Check if the first line needs to be modified
-        (let ((first-line (buffer-substring-no-properties 
-                          (line-beginning-position) 
+        (let ((first-line (buffer-substring-no-properties
+                          (line-beginning-position)
                           (line-end-position))))
           (if (string= first-line "%!TEX root = ../main.tex")
               (progn
                 ;; Modify the first line
                 (delete-region (line-beginning-position) (line-end-position))
                 (insert "%!TEX root = ../main2113.tex")
-            
+
                 ;; Save the file
                 (write-region (point-min) (point-max) file)
                 (setq files-modified (1+ files-modified))
@@ -2537,9 +2736,40 @@ If not provided, defaults to './Content'."
             (message "Skipped: %s (first line is: %s)" file first-line)))))
 
     ;; Display summary
-    (message "Summary: Processed %d files, modified %d files" 
+    (message "Summary: Processed %d files, modified %d files"
              files-processed files-modified)
     (list files-processed files-modified)))
+
+(defun mooerslab-region-to-org-dash-list (begin end)
+  "Convert the active region to an org-mode dash list.
+Each line in the region becomes a separate list item."
+  (interactive "r") ; Get region boundaries
+  (let ((lines nil)
+        (dash-list ""))
+    ;; Save each line from the region into a list
+    (save-excursion
+      (goto-char begin)
+      (while (< (point) end)
+        (let ((line-text (buffer-substring-no-properties
+                          (line-beginning-position)
+                          (line-end-position))))
+          ;; Skip empty lines
+          (unless (string-empty-p (string-trim line-text))
+            (push line-text lines)))
+        (forward-line 1)))
+
+    ;; Build the dash list with the lines in reverse order (to maintain original order)
+    (setq dash-list
+          (mapconcat (lambda (line)
+                       (concat "- " (string-trim line)))
+                     (nreverse lines)
+                     "\n"))
+
+    ;; Replace the region with the dash list
+    (delete-region begin end)
+    (insert dash-list)))
+
+
 
 
 ;; Example usage:
