@@ -14,14 +14,111 @@
 
 ;;; Code:
 
+(defun mooerslab-prose-markdown-region-to-latex (start end)
+  "Convert the region from START to END from Markdown to LaTeX for prose and lists.
+Converts:
+- Double asterisks (**text**) to \\textit{text}
+- # Section -> \\section{Section}
+- ## Subsection -> \\subsection{Subsection}
+- ### Subsubsection -> \\subsubsection{Subsubsection}
+- Unordered lists (-, *, +) to \\itemize with \\item
+- Ordered lists (1., 2., etc.) to \\enumerate with \\item
+Handles nested lists by tracking indentation levels."
+  (interactive "r")
+  (let* ((text (buffer-substring start end))
+         (lines (split-string text "\n"))
+         (output-lines '())
+         (stack '()) ; Stack of (list-type . indent-level)
+         (new-line nil))
 
+    ;; Process each line
+    (dolist (line lines)
+      ;; Step 1: Convert emphasis (**text** to \textit{text})
+      (setq new-line (replace-regexp-in-string "\\*\\*\\([^*]+?\\)\\*\\*" "\\\\textit{\\1}" line))
+
+      ;; Step 2: Check if it's a heading (up to 3 leading spaces allowed)
+      (if (string-match "^\\s-\\{0,3\\}\\(#\\{1,3\\}\\)\\s-+\\(.*\\)$" new-line)
+          ;; It's a heading - close any open lists first
+          (let* ((hashes (match-string 1 new-line))
+                 (heading-text (match-string 2 new-line))
+                 (latex-heading
+                  (cond
+                   ((= (length hashes) 1) (concat "\\section{" heading-text "}"))
+                   ((= (length hashes) 2) (concat "\\subsection{" heading-text "}"))
+                   ((= (length hashes) 3) (concat "\\subsubsection{" heading-text "}")))))
+            ;; Close any open lists
+            (while stack
+              (let ((env (pop stack)))
+                (push (format "\\end{%s}" (car env)) output-lines)))
+            (push latex-heading output-lines))
+
+        ;; Step 3: Not a heading, check for list items
+        (let ((indent 0)
+              (type nil)
+              (content nil))
+
+          ;; Check for unordered list item
+          (cond
+           ((string-match "^\\(\\s-*\\)\\([-*+]\\)\\s-*\\(.*\\)$" new-line)
+            (setq indent (length (match-string 1 new-line)))
+            (setq type 'itemize)
+            (setq content (match-string 3 new-line)))
+
+           ;; Check for ordered list item
+           ((string-match "^\\(\\s-*\\)\\([0-9]+\\.\\)\\s-*\\(.*\\)$" new-line)
+            (setq indent (length (match-string 1 new-line)))
+            (setq type 'enumerate)
+            (setq content (match-string 3 new-line)))
+
+           ;; Not a list item
+           (t (setq type nil)))
+
+          (if type
+              ;; Process list item
+              (progn
+                ;; Close environments deeper than current level
+                (while (and stack (> (cdar stack) indent))
+                  (let ((env (pop stack)))
+                    (push (format "\\end{%s}" (car env)) output-lines)))
+
+                ;; Handle current level
+                (if (and stack (= (cdar stack) indent))
+                    ;; Same level - check if same type
+                    (if (eq (caar stack) type)
+                        ;; Same type - just add item
+                        (push (concat "\\item " content) output-lines)
+                      ;; Different type - close old, open new
+                      (let ((old-env (pop stack)))
+                        (push (format "\\end{%s}" (car old-env)) output-lines)
+                        (push (format "\\begin{%s}" type) output-lines)
+                        (push `(,type . ,indent) stack)
+                        (push (concat "\\item " content) output-lines)))
+                  ;; Deeper level or first list
+                  (push (format "\\begin{%s}" type) output-lines)
+                  (push `(,type . ,indent) stack)
+                  (push (concat "\\item " content) output-lines)))
+
+            ;; Not a list item - close all open lists and output line
+            (while stack
+              (let ((env (pop stack)))
+                (push (format "\\end{%s}" (car env)) output-lines)))
+            (push new-line output-lines)))))
+
+    ;; Close any remaining open lists
+    (while stack
+      (let ((env (pop stack)))
+        (push (format "\\end{%s}" (car env)) output-lines)))
+
+    ;; Replace the region with converted text
+    (delete-region start end)
+    (insert (mapconcat 'identity (reverse output-lines) "\n"))))
 
 
 (defun mooerslab-count-lines ()
   "Interactively count lines in an elisp or org-mode file.
 Prompts for a file and returns annotated line counts."
   (interactive)
-  (let* ((file (read-file-name "Select elisp or org-mode file: " 
+  (let* ((file (read-file-name "Select elisp or org-mode file: "
                                nil nil t nil
                                (lambda (f)
                                  (or (string-match "\\.el\\'" f)
@@ -33,25 +130,25 @@ Prompts for a file and returns annotated line counts."
          (blank-lines 0)
          (header-lines 0)
          (result-buffer (get-buffer-create "*Line Count Results*")))
-    
+
     (if (not (file-exists-p file))
         (message "File does not exist: %s" file)
-      
+
       (with-temp-buffer
         (insert-file-contents file)
         (goto-char (point-min))
-        
+
         (while (not (eobp))
           (let ((line (buffer-substring-no-properties
                        (line-beginning-position)
                        (line-end-position))))
             (setq total-lines (1+ total-lines))
-            
+
             (cond
              ;; Blank line
              ((string-match "^[[:space:]]*$" line)
               (setq blank-lines (1+ blank-lines)))
-             
+
              ;; For elisp files
              ((string= file-extension "el")
               (cond
@@ -61,7 +158,7 @@ Prompts for a file and returns annotated line counts."
                ;; Code line
                (t
                 (setq code-lines (1+ code-lines)))))
-             
+
              ;; For org-mode files
              ((string= file-extension "org")
               (cond
@@ -75,31 +172,31 @@ Prompts for a file and returns annotated line counts."
                ;; Content line
                (t
                 (setq code-lines (1+ code-lines))))))
-            
+
             (forward-line 1))))
-      
+
       ;; Display results
       (with-current-buffer result-buffer
         (erase-buffer)
         (insert (format "Line Count Analysis for: %s\n" file))
         (insert (make-string 50 ?=))
         (insert "\n\n")
-        (insert (format "File Type:        %s\n" 
+        (insert (format "File Type:        %s\n"
                        (if (string= file-extension "el") "Emacs Lisp" "Org-mode")))
         (insert (format "Total Lines:      %d\n" total-lines))
-        (insert (format "Content Lines:    %d (%.1f%%)\n" 
-                       code-lines 
+        (insert (format "Content Lines:    %d (%.1f%%)\n"
+                       code-lines
                        (if (> total-lines 0)
                            (* 100.0 (/ (float code-lines) total-lines))
                          0)))
         (when (string= file-extension "org")
           (insert (format "  Header Lines:   %d\n" header-lines)))
-        (insert (format "Comment Lines:    %d (%.1f%%)\n" 
+        (insert (format "Comment Lines:    %d (%.1f%%)\n"
                        comment-lines
                        (if (> total-lines 0)
                            (* 100.0 (/ (float comment-lines) total-lines))
                          0)))
-        (insert (format "Blank Lines:      %d (%.1f%%)\n" 
+        (insert (format "Blank Lines:      %d (%.1f%%)\n"
                        blank-lines
                        (if (> total-lines 0)
                            (* 100.0 (/ (float blank-lines) total-lines))
@@ -107,12 +204,12 @@ Prompts for a file and returns annotated line counts."
         (insert "\n")
         (insert (make-string 50 ?-))
         (insert "\n")
-        (insert (format "Effective Lines:  %d (non-blank)\n" 
+        (insert (format "Effective Lines:  %d (non-blank)\n"
                        (- total-lines blank-lines))))
-      
+
       ;; Show the result buffer
       (display-buffer result-buffer)
-      
+
       ;; Return the annotated list
       (list :file file
             :type (if (string= file-extension "el") "elisp" "org-mode")
@@ -124,7 +221,7 @@ Prompts for a file and returns annotated line counts."
 
 
 ;; Function to create note and open PDF
-(defun mooerslab-citar-open-org-roam-note ()
+(defun mooerslab-citar-open-org-roam-literature-note ()
   "Open or create an org-roam literature note and associated PDF. Specify type == 'paper' or 'book'."
   (interactive)
   (let* ((key (citar-select-ref))
@@ -2339,17 +2436,17 @@ point relative to the headline with the tag."
 
 
 ;;; Reload the initialization file after editing it in Emacs
-(defun mooerslab-reload-init-e30f ()
-  "Reload the init.el file for e30fewpacakges. Edit the path to suit your needs."
+(defun mooerslab-reload-init-e30mb ()
+  "Reload the init.el file for e30mb. Edit the path to suit your needs."
   (interactive)
-  (load-file "~/e30fewpackages/init.el"))
+  (load-file "~/e30mb/init.init"))
 
 
-;;; Open the init.el file for editing.
-(defun mooerslab-open-init-e30f ()
-  "Open the init.el file for editing. Edit the path to suit your needs."
+;;; Open the init.org file for editing.
+(defun mooerslab-open-initorg-e30mb ()
+  "Open the init.org file for editing. Edit the path to suit your needs."
   (interactive)
-  (find-file "~/e30fewpackages/init.el"))
+  (find-file "~/e30mb/init.org"))
 
 
 ;;; Open the mooerslab.el file for editing.
@@ -2463,7 +2560,7 @@ point relative to the headline with the tag."
         (replace-match ".")))))
 
 ;; Bind the function to a key combination
-(global-set-key (kbd "C-c s") 'mooerslab-split-sentences-into-lines)
+(global-set-key (kbd "C-c s s") 'mooerslab-split-sentences-into-lines)
 
 
 
