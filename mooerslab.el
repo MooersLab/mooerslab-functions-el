@@ -344,6 +344,73 @@ This function will transform each line into an org-mode link pointing to
         (insert ".pdf]]")
         (forward-line 1)))))
 
+
+(defun mooerslab-bibtex-entry-add-file-field ()
+  "Add a file field to the current BibTeX entry using the cite key.
+The file field format is: file = {:<cite-key>.pdf:PDF}
+The cursor should be positioned within a BibTeX entry.
+Bound to C-x a f. Apply when the function below fails."
+  (interactive)
+  (save-excursion
+    (let (entry-start entry-end cite-key)
+      ;; Try to find the BibTeX entry boundaries manually
+      (condition-case nil
+          (progn
+            (setq entry-start (bibtex-beginning-of-entry))
+            (setq entry-end (bibtex-end-of-entry)))
+        (error
+         ;; If bibtex functions fail, find entry manually
+         (save-excursion
+           ;; Look backward for entry start
+           (if (re-search-backward "^[[:space:]]*@\\w+[[:space:]]*{" nil t)
+               (setq entry-start (point))
+             (error "Cannot find start of BibTeX entry")))
+         (save-excursion
+           ;; Look forward for entry end (closing brace)
+           (goto-char entry-start)
+           (let ((brace-count 1)
+                 (start-pos (progn (re-search-forward "{") (point))))
+             (while (and (> brace-count 0) (not (eobp)))
+               (cond
+                ((looking-at "{") (setq brace-count (1+ brace-count)))
+                ((looking-at "}") (setq brace-count (1- brace-count))))
+               (forward-char))
+             (if (= brace-count 0)
+                 (setq entry-end (point))
+               (error "Cannot find end of BibTeX entry"))))))
+
+      ;; Check if we found valid boundaries
+      (unless (and entry-start entry-end (< entry-start entry-end))
+        (error "Not in a valid BibTeX entry"))
+
+      ;; Extract the cite key
+      (goto-char entry-start)
+      (if (re-search-forward "@\\w+[[:space:]]*{\\([^,}]+\\)" entry-end t)
+          (setq cite-key (string-trim (match-string 1)))
+        (error "No cite key found in current entry"))
+
+      ;; Check if file field already exists
+      (goto-char entry-start)
+      (when (re-search-forward "^[[:space:]]*file[[:space:]]*=[[:space:]]*{" entry-end t)
+        (error "File field already exists in this entry"))
+
+      ;; Find insertion point - before the closing brace
+      (goto-char entry-end)
+      (backward-char) ; Move before the closing brace
+      (skip-chars-backward " \t\n") ; Skip whitespace
+      (when (looking-back "," (1- (point)))
+          (forward-char)) ; Move after comma if present
+
+      ;; Insert the file field
+      (insert (format ",\n  file = {:%s.pdf:PDF}" cite-key))
+
+      (message "Added file field with cite key: %s" cite-key))))
+
+;; Bind the function to C-x a f
+(global-set-key (kbd "C-x a f") 'mooerslab-bibtex-entry-add-file-field)
+
+
+
 (defun mooerslab-bibtex-add-file-field-to-entry ()
   "Add a PDF file field to the current BibTeX entry when it is being generate after submission of the article's DOI.
   The file will be renamed using the citation key.
@@ -2435,11 +2502,11 @@ point relative to the headline with the tag."
   (start-process "mpv" nil "mpv" URL))
 
 
-;;; Reload the initialization file after editing it in Emacs
+;;; Reload the initialization file init.el.
 (defun mooerslab-reload-init-e30mb ()
   "Reload the init.el file for e30mb. Edit the path to suit your needs."
   (interactive)
-  (load-file "~/e30mb/init.init"))
+  (load-file "~/e30mb/init.el"))
 
 
 ;;; Open the init.org file for editing.
