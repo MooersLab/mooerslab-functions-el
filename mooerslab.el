@@ -14,6 +14,16 @@
 
 ;;; Code:
 
+(defun mooerslab-check-ollama-connection ()
+     "Check if Ollama is running on localhost:11434."
+     (interactive)
+     (url-retrieve "http://localhost:11434/api/tags"
+                   (lambda (status)
+                     (if (plist-get status :error)
+                         (message "Ollama is NOT running at localhost:11434")
+                       (message "Ollama is running at localhost:11434")))))
+
+
 (defun mooerslab-prose-markdown-region-to-latex (start end)
   "Convert the region from START to END from Markdown to LaTeX for prose and lists.
 Converts:
@@ -349,66 +359,69 @@ This function will transform each line into an org-mode link pointing to
   "Add a file field to the current BibTeX entry using the cite key.
 The file field format is: file = {:<cite-key>.pdf:PDF}
 The cursor should be positioned within a BibTeX entry.
-Bound to C-x a f. Apply when the function below fails."
+It works when positioned in the title field."
   (interactive)
-  (save-excursion
-    (let (entry-start entry-end cite-key)
-      ;; Try to find the BibTeX entry boundaries manually
-      (condition-case nil
-          (progn
-            (setq entry-start (bibtex-beginning-of-entry))
-            (setq entry-end (bibtex-end-of-entry)))
-        (error
-         ;; If bibtex functions fail, find entry manually
-         (save-excursion
-           ;; Look backward for entry start
-           (if (re-search-backward "^[[:space:]]*@\\w+[[:space:]]*{" nil t)
-               (setq entry-start (point))
-             (error "Cannot find start of BibTeX entry")))
-         (save-excursion
-           ;; Look forward for entry end (closing brace)
-           (goto-char entry-start)
-           (let ((brace-count 1)
-                 (start-pos (progn (re-search-forward "{") (point))))
-             (while (and (> brace-count 0) (not (eobp)))
-               (cond
-                ((looking-at "{") (setq brace-count (1+ brace-count)))
-                ((looking-at "}") (setq brace-count (1- brace-count))))
-               (forward-char))
-             (if (= brace-count 0)
-                 (setq entry-end (point))
-               (error "Cannot find end of BibTeX entry"))))))
+  (let (entry-start entry-end cite-key)
+    ;; Find the start of the current entry
+    (save-excursion
+      (beginning-of-line)
+      ;; Search backward for entry start, including current line
+      (while (and (not (looking-at "^[[:space:]]*@\\w+[[:space:]]*{"))
+                  (not (bobp)))
+        (forward-line -1))
+      (if (looking-at "^[[:space:]]*@\\w+[[:space:]]*{")
+          (setq entry-start (point))
+        (error "Cannot find start of BibTeX entry")))
 
-      ;; Check if we found valid boundaries
-      (unless (and entry-start entry-end (< entry-start entry-end))
-        (error "Not in a valid BibTeX entry"))
-
-      ;; Extract the cite key
+    ;; Find the end of the current entry
+    (save-excursion
       (goto-char entry-start)
-      (if (re-search-forward "@\\w+[[:space:]]*{\\([^,}]+\\)" entry-end t)
-          (setq cite-key (string-trim (match-string 1)))
-        (error "No cite key found in current entry"))
+      (let ((brace-count 0)
+            (in-entry nil))
+        ;; Move to the opening brace and start counting
+        (re-search-forward "{")
+        (setq brace-count 1)
+        (setq in-entry t)
+        ;; Count braces to find the matching closing brace
+        (while (and (> brace-count 0) (not (eobp)))
+          (cond
+           ((looking-at "{") 
+            (setq brace-count (1+ brace-count)))
+           ((looking-at "}") 
+            (setq brace-count (1- brace-count))))
+          (when (> brace-count 0)
+            (forward-char)))
+        (if (= brace-count 0)
+            (setq entry-end (1+ (point)))
+          (error "Cannot find end of BibTeX entry"))))
 
-      ;; Check if file field already exists
+    ;; Extract the cite key
+    (save-excursion
       (goto-char entry-start)
-      (when (re-search-forward "^[[:space:]]*file[[:space:]]*=[[:space:]]*{" entry-end t)
-        (error "File field already exists in this entry"))
+      (if (re-search-forward "@\\w+[[:space:]]*{\\([^,}[:space:]]+\\)" entry-end t)
+          (setq cite-key (match-string 1))
+        (error "No cite key found in current entry")))
 
-      ;; Find insertion point - before the closing brace
+    ;; Check if file field already exists
+    (save-excursion
+      (goto-char entry-start)
+      (when (re-search-forward "^[[:space:]]*file[[:space:]]*=" entry-end t)
+        (error "File field already exists in this entry")))
+
+    ;; Insert the file field before the closing brace
+    (save-excursion
       (goto-char entry-end)
-      (backward-char) ; Move before the closing brace
-      (skip-chars-backward " \t\n") ; Skip whitespace
-      (when (looking-back "," (1- (point)))
-          (forward-char)) ; Move after comma if present
+      (backward-char 1) ; Move before the closing brace
+      (skip-chars-backward " \t\n\r") ; Skip whitespace
+      ;; Add comma if the previous character isn't already a comma
+      (unless (looking-back "," 1)
+        (insert ","))
+      (insert (format "\n  file = {:%s.pdf:PDF}" cite-key)))
 
-      ;; Insert the file field
-      (insert (format ",\n  file = {:%s.pdf:PDF}" cite-key))
-
-      (message "Added file field with cite key: %s" cite-key))))
+    (message "Added file field with cite key: %s" cite-key)))
 
 ;; Bind the function to C-x a f
 (global-set-key (kbd "C-x a f") 'mooerslab-bibtex-entry-add-file-field)
-
 
 
 (defun mooerslab-bibtex-add-file-field-to-entry ()
@@ -2604,7 +2617,7 @@ point relative to the headline with the tag."
 
 ;;; Split long lines into one line per sentence.
 ;% The function is priceless when working with transripts from whisper-file.
-(defun mooerslab-split-sentences-into-lines (start end)
+(defun mooerslab-split-line-by-sentences (start end)
   "Move each sentence in the region to its own line, ignoring common titles and abbreviations."
   (interactive "r")
   (save-excursion
@@ -2627,7 +2640,7 @@ point relative to the headline with the tag."
         (replace-match ".")))))
 
 ;; Bind the function to a key combination
-(global-set-key (kbd "C-c s s") 'mooerslab-split-sentences-into-lines)
+(global-set-key (kbd "C-c s s") 'mooerslab-split-line-by-sentences)
 
 
 
