@@ -14,6 +14,197 @@
 
 ;;; Code:
 
+
+
+
+
+
+
+; ;; Renumber starting from 3 (as in your example)
+; (renumber-tips-and-rules 3)
+;
+; ;; Renumber starting from 1
+; (renumber-tips-from-beginning)
+;
+; ;; Interactive prompt for starting number
+; M-x renumber-tips-interactive
+
+(defun mooerslab-latex-renumber-latex-tips-and-rules (start-number)
+  "Renumber LaTeX section headlines that start with 'Tip' or 'Rule' beginning from START-NUMBER.
+This function gracefully handles gaps in the numbered list by sequentially
+renumbering all found headlines. Handles \\section, \\subsection, \\subsubsection, etc."
+  (interactive "nStarting number: ")
+  (save-excursion
+    (goto-char (point-min))
+    (let ((current-number start-number)
+          (case-fold-search t))
+      (while (re-search-forward 
+              "\\\\\\(sub\\)*section{\\(Tip\\|Rule\\) \\([0-9]+\\):" nil t)
+        (let ((section-type (match-string 1))
+              (keyword (match-string 2))
+              (old-number (match-string 3)))
+          ;; Replace the number in the section headline
+          (replace-match 
+           (format "\\%ssection{%s %d:" 
+                   (if section-type section-type "")
+                   keyword 
+                   current-number) 
+           nil nil nil 0)
+          
+          ;; Increment counter for next headline
+          (setq current-number (1+ current-number))))
+      
+      ;; Report results
+      (message "Renumbered %d LaTeX section headlines starting from %d" 
+               (- current-number start-number) 
+               start-number))))
+
+(defun mooerslab-latex-renumber-latex-tips-from-beginning ()
+  "Convenience function to renumber LaTeX tips and rules starting from 1."
+  (interactive)
+  (renumber-latex-tips-and-rules 1))
+
+(defun mooerslab-latex-renumber-latex-tips-interactive ()
+  "Interactively renumber LaTeX tips and rules with user-specified starting number."
+  (interactive)
+  (let ((start-num (read-number "Starting number: " 1)))
+    (renumber-latex-tips-and-rules start-num)))
+
+(defun mooerslab-latex-renumber-latex-sections-general (pattern start-number)
+  "General function to renumber LaTeX sections matching PATTERN starting from START-NUMBER.
+PATTERN should be a regex that captures the section type and number.
+Example: '\\\\\\\\\\(sub\\)*section{\\([^0-9]*\\)\\([0-9]+\\)' for any numbered section."
+  (interactive "sRegex pattern: \nnStarting number: ")
+  (save-excursion
+    (goto-char (point-min))
+    (let ((current-number start-number)
+          (count 0))
+      (while (re-search-forward pattern nil t)
+        (let ((full-match (match-string 0))
+              (prefix (match-string 1))
+              (text-part (match-string 2))
+              (old-number (match-string 3)))
+          ;; Replace with new number
+          (replace-match 
+           (format "\\%ssection{%s%d" 
+                   (if prefix prefix "")
+                   text-part
+                   current-number))
+          (setq current-number (1+ current-number))
+          (setq count (1+ count))))
+      
+      ;; Report results
+      (message "Renumbered %d LaTeX sections starting from %d" count start-number))))
+
+(defun rmooerslab-latex-enumber-latex-any-numbered-sections (start-number)
+  "Renumber any LaTeX section that contains a number, starting from START-NUMBER.
+Works with \\section, \\subsection, \\subsubsection, etc."
+  (interactive "nStarting number: ")
+  (save-excursion
+    (goto-char (point-min))
+    (let ((current-number start-number)
+          (case-fold-search t))
+      (while (re-search-forward 
+              "\\\\\\(\\(?:sub\\)*section\\){\\([^}]*?\\)\\([0-9]+\\)\\([^}]*\\)}" nil t)
+        (let ((section-command (match-string 1))
+              (prefix-text (match-string 2))
+              (old-number (match-string 3))
+              (suffix-text (match-string 4)))
+          ;; Replace the number in the section headline
+          (replace-match 
+           (format "\\%s{%s%d%s}" 
+                   section-command
+                   prefix-text
+                   current-number
+                   suffix-text) 
+           nil nil nil 0)
+          
+          ;; Increment counter for next headline
+          (setq current-number (1+ current-number))))
+      
+      ;; Report results
+      (message "Renumbered %d LaTeX numbered sections starting from %d" 
+               (- current-number start-number) 
+               start-number))))
+
+(defun mooerslab-latex-renumber-latex-specific-section-type (section-type start-number)
+  "Renumber specific LaTeX section type (e.g., 'section', 'subsection') starting from START-NUMBER."
+  (interactive "sSection type (section/subsection/subsubsection): \nnStarting number: ")
+  (save-excursion
+    (goto-char (point-min))
+    (let ((current-number start-number)
+          (pattern (format "\\\\%s{\\([^}]*?\\)\\([0-9]+\\)\\([^}]*\\)}" section-type)))
+      (while (re-search-forward pattern nil t)
+        (let ((prefix-text (match-string 1))
+              (old-number (match-string 2))
+              (suffix-text (match-string 3)))
+          ;; Replace the number
+          (replace-match 
+           (format "\\%s{%s%d%s}" 
+                   section-type
+                   prefix-text
+                   current-number
+                   suffix-text) 
+           nil nil nil 0)
+          
+          (setq current-number (1+ current-number))))
+      
+      ;; Report results
+      (message "Renumbered %d \\%s headlines starting from %d" 
+               (- current-number start-number) 
+               section-type
+               start-number))))
+
+
+(defun mooerslab-org-renumber-tips-and-rules (start-number)
+  "Renumber headlines that start with 'Tip' or 'Rule' beginning from START-NUMBER.
+This function gracefully handles gaps in the numbered list by sequentially
+renumbering all found headlines. Also updates corresponding CUSTOM_ID properties."
+  (interactive "nStarting number: ")
+  (save-excursion
+    (goto-char (point-min))
+    (let ((current-number start-number)
+          (case-fold-search t))
+      (while (re-search-forward "^\\*+ \\(Tip\\|Rule\\) \\([0-9]+\\):" nil t)
+        (let ((keyword (match-string 1))
+              (old-number (match-string 2))
+              (start-pos (match-beginning 0)))
+          ;; Replace the number in the headline
+          (replace-match (format "* %s %d:" keyword current-number) nil nil nil 0)
+          
+          ;; Look for and update CUSTOM_ID property
+          (save-excursion
+            (forward-line 1)
+            (when (looking-at ":PROPERTIES:")
+              (forward-line 1)
+              (when (re-search-forward "^:CUSTOM_ID: rule-\\([0-9]+\\)-" 
+                                     (save-excursion 
+                                       (re-search-forward "^:END:" nil t)
+                                       (point))
+                                     t)
+                (replace-match (format ":CUSTOM_ID: rule-%d-" current-number)))))
+          
+          ;; Increment counter for next headline
+          (setq current-number (1+ current-number))))
+      
+      ;; Report results
+      (message "Renumbered %d headlines starting from %d" 
+               (- current-number start-number) 
+               start-number))))
+
+(defun mooerslab-org-renumber-tips-from-beginning ()
+  "Convenience function to renumber tips and rules starting from 1."
+  (interactive)
+  (renumber-tips-and-rules 1))
+
+(defun mooerslab-org-renumber-tips-interactive ()
+  "Interactively renumber tips and rules with user-specified starting number."
+  (interactive)
+  (let ((start-num (read-number "Starting number: " 1)))
+    (renumber-tips-and-rules start-num)))
+
+
+
 (defun mooerslab-check-ollama-connection ()
      "Check if Ollama is running on localhost:11434."
      (interactive)
