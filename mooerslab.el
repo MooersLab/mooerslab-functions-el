@@ -15,9 +15,67 @@
 ;;; Code:
 
 
+(defun mooerslab-convert-pdf-list-to-html-list ()
+  "Convert a list of PDF filenames in region to HTML list items.
+Each line should contain a PDF filename in the format:
+AuthorYEARTitle.pdf
 
+The function will:
+1. Sort lines alphabetically
+2. Parse each filename to extract author, year, and title
+3. Format as HTML list items with file:// links to /Users/blaine/0booksLabeled/
 
+Example input:
+Alpaydin2016MachineLearningTheNewAI.pdf
 
+Example output:
+<li><a href=\"file:///Users/blaine/0booksLabeled/Alpaydin2016MachineLearningTheNewAI.pdf\">Alpaydin (2016) Machine Learning The New AI</a></li>"
+  (interactive)
+  (unless (use-region-p)
+    (user-error "No region selected"))
+  (let* ((start (region-beginning))
+         (end (region-end))
+         (lines (split-string (buffer-substring-no-properties start end) "\n" t))
+         (sorted-lines (sort lines #'string<))
+         (html-lines '()))
+    ;; Process each line
+    (dolist (line sorted-lines)
+      (when (string-match "\\`\\([A-Za-z]+\\)\\([0-9X]+\\)\\(.*\\)\\.\\(pdf\\|epub\\|chm\\)\\'" line)
+        (let* ((author (match-string 1 line))
+               (year (match-string 2 line))
+               (title-raw (match-string 3 line))
+               (extension (match-string 4 line))
+               ;; Process title character by character with lookahead
+               (title-spaced (let ((result "")
+                                   (len (length title-raw)))
+                              (dotimes (i len)
+                                (let ((char (aref title-raw i))
+                                      (prev-char (if (> i 0) (aref title-raw (1- i)) nil))
+                                      (next-char (if (< i (1- len)) (aref title-raw (1+ i)) nil)))
+                                  ;; Add space before uppercase if:
+                                  ;; - Previous char is lowercase OR digit
+                                  ;; - AND current char is uppercase
+                                  ;; - AND next char is lowercase (start of new word)
+                                  (when (and prev-char
+                                            next-char
+                                            (or (and (>= prev-char ?a) (<= prev-char ?z))
+                                                (and (>= prev-char ?0) (<= prev-char ?9)))
+                                            (and (>= char ?A) (<= char ?Z))
+                                            (and (>= next-char ?a) (<= next-char ?z)))
+                                    (setq result (concat result " ")))
+                                  (setq result (concat result (char-to-string char)))))
+                              result))
+               ;; Clean up multiple spaces
+               (title-clean (replace-regexp-in-string "  +" " " title-spaced))
+               (html-line (format "<li><a href=\"file:///Users/blaine/0booksLabeled/%s\">%s (%s) %s</a></li>"
+                                  line
+                                  author
+                                  year
+                                  title-clean)))
+          (push html-line html-lines))))
+    ;; Replace region with HTML output
+    (delete-region start end)
+    (insert (mapconcat #'identity (nreverse html-lines) "\n"))))
 
 
 ; ;; Renumber starting from 3 (as in your example)
@@ -28,7 +86,6 @@
 ;
 ; ;; Interactive prompt for starting number
 ; M-x renumber-tips-interactive
-
 (defun mooerslab-latex-renumber-latex-tips-and-rules (start-number)
   "Renumber LaTeX section headlines that start with 'Tip' or 'Rule' beginning from START-NUMBER.
 This function gracefully handles gaps in the numbered list by sequentially
@@ -59,16 +116,44 @@ renumbering all found headlines. Handles \\section, \\subsection, \\subsubsectio
                (- current-number start-number) 
                start-number))))
 
+
+(defun mooerslab-org-enclose-region-in-quote ()
+  "Enclose the selected region in a #+BEGIN_QUOTE and #+END_QUOTE block."
+  (interactive)
+  (if (use-region-p)
+      (let ((start (region-beginning))
+            (end (region-end)))
+        (goto-char end)
+        (insert "\n#+END_QUOTE")
+        (goto-char start)
+        (insert "#+BEGIN_QUOTE\n"))
+    (message "No region selected!")))
+
+
+(defun mooerslab-latex-enclose-region-in-quote (begin end)
+  "Wrap the selected region in a LaTeX quote environment.
+BEGIN and END define the region to be wrapped."
+  (interactive "r")
+  (let ((selected-text (buffer-substring-no-properties begin end)))
+    (delete-region begin end)
+    (insert "\\begin{quote}\n"
+            selected-text
+            (if (string-suffix-p "\n" selected-text) "" "\n")
+            "\\end{quote}")))
+
+
 (defun mooerslab-latex-renumber-latex-tips-from-beginning ()
   "Convenience function to renumber LaTeX tips and rules starting from 1."
   (interactive)
   (renumber-latex-tips-and-rules 1))
+
 
 (defun mooerslab-latex-renumber-latex-tips-interactive ()
   "Interactively renumber LaTeX tips and rules with user-specified starting number."
   (interactive)
   (let ((start-num (read-number "Starting number: " 1)))
     (renumber-latex-tips-and-rules start-num)))
+
 
 (defun mooerslab-latex-renumber-latex-sections-general (pattern start-number)
   "General function to renumber LaTeX sections matching PATTERN starting from START-NUMBER.
@@ -95,6 +180,7 @@ Example: '\\\\\\\\\\(sub\\)*section{\\([^0-9]*\\)\\([0-9]+\\)' for any numbered 
       
       ;; Report results
       (message "Renumbered %d LaTeX sections starting from %d" count start-number))))
+
 
 (defun rmooerslab-latex-enumber-latex-any-numbered-sections (start-number)
   "Renumber any LaTeX section that contains a number, starting from START-NUMBER.
@@ -126,6 +212,54 @@ Works with \\section, \\subsection, \\subsubsection, etc."
       (message "Renumbered %d LaTeX numbered sections starting from %d" 
                (- current-number start-number) 
                start-number))))
+
+(defun mooerslab-numbered-list-to-latex-items ()
+  "Convert a numbered list to LaTeX \\item statements."
+  (interactive)
+  (save-excursion
+    (save-restriction 
+      (narrow-to-region (region-beginning) (region-end))
+      (goto-char (point-min))
+      (while (re-search-forward "^\\s-*[0-9]+\\.\\s-+" nil t)
+        (replace-match "\\\\item " nil nil))
+        (goto-char (point-min))
+        (while (re-search-forward "\\\\item\\s-+\\(.*\\)" nil t)
+          (replace-match "\\\\item \\1\n" nil nil)))))
+    
+(defun mooerslab--numbered-list-to-latex-items ()
+  "Convert a numbered list to LaTeX \\item statements."
+  (interactive)
+  (save-excursion
+    (save-restriction 
+      (narrow-to-region (region-beginning) (region-end))
+      (goto-char (point-min))
+      (while (re-search-forward "^\\s-*[0-9]+\\.\\s-+" nil t)
+        (replace-match "\\\\item " nil nil))
+      (goto-char (point-min))  
+      (while (re-search-forward "\\\\item\\s-+\\(.*\\)" nil t)
+        (replace-match "\\\\item \\1%" nil nil))
+      (goto-char (point-min))
+      (while (search-forward "%" nil t)
+        (replace-match "\n" nil t)))))
+    
+    
+(defun mooerslab-dash-list-to-latex-items ()
+  "Convert a dash list to LaTeX \\item statements."
+  (interactive)
+  (save-excursion
+    (save-restriction
+      (narrow-to-region (region-beginning) (region-end))
+      (goto-char (point-min))
+      (while (re-search-forward "^\\s-*[-*+]\\s-+" nil t)
+        (replace-match "\\\\item " nil nil))
+      (goto-char (point-min))
+      (while (re-search-forward "\\\\item\\s-+\\(.*\\)" nil t)
+        (replace-match "\\\\item \\1%" nil nil))
+      (goto-char (point-min))
+      (while (search-forward "%" nil t)
+        (replace-match "\n" nil t)))))
+
+
 
 (defun mooerslab-latex-renumber-latex-specific-section-type (section-type start-number)
   "Renumber specific LaTeX section type (e.g., 'section', 'subsection') starting from START-NUMBER."
