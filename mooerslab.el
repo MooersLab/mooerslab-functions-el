@@ -15,6 +15,118 @@
 ;;; Code:
 
 
+(defun mooerslab-book-pdf-to-org-link (pdf-path)
+  "Convert a PDF file path to an org-mode link.
+The link description is derived from the filename by:
+1. Removing the .pdf extension
+2. Parsing author, year, and title
+3. Adding spaces to separate CamelCase appropriately."
+  (interactive "fSelect PDF file: ")
+  (let* ((filename (file-name-nondirectory pdf-path))
+         (name-sans-ext (file-name-sans-extension filename))
+         org-link)
+    (if (string-match "\\`\\([A-Za-z]+\\)\\([0-9X]+\\)\\(.*\\)\\'" name-sans-ext)
+        (let* ((author (match-string 1 name-sans-ext))
+               (year (match-string 2 name-sans-ext))
+               (title-raw (match-string 3 name-sans-ext))
+               ;; Process title character by character with lookahead
+
+               (title-spaced (let ((result "")
+                                   (len (length title-raw)))
+                               (dotimes (i len)
+                                 (let ((char (aref title-raw i))
+                                       (prev-char (if (> i 0) (aref title-raw (1- i)) nil))
+                                       (next-char (if (< i (1- len)) (aref title-raw (1+ i)) nil)))
+                                   ;; Add space before uppercase if:
+                                   ;; - Previous char is lowercase OR digit
+                                   ;; - AND current char is uppercase
+                                   ;; - AND next char is lowercase (start of new word)
+                                   (when (and prev-char
+                                              next-char
+                                              (or (and (>= prev-char ?a) (<= prev-char ?z))
+                                                  (and (>= prev-char ?0) (<= prev-char ?9)))
+                                              (and (>= char ?A) (<= char ?Z))
+                                              (and (>= next-char ?a) (<= next-char ?z)))
+                                     (setq result (concat result " ")))
+                                   (setq result (concat result (char-to-string char)))))
+                               result))
+               ;; Clean up multiple spaces
+               (title-clean (replace-regexp-in-string "  +" " " title-spaced))
+               (description (format "%s (%s) %s" author year title-clean)))
+          (setq org-link (format "[[file:%s][%s]]" pdf-path description)))
+      ;; Fallback if filename does not match expected pattern
+      (setq org-link (format "[[file:%s][%s]]" pdf-path name-sans-ext)))
+    (if (called-interactively-p 'any)
+        (progn
+          (insert org-link)
+          (message "Inserted org link for: %s" filename))
+      org-link)))
+
+(defun mooerslab-book-pdf-to-org-link-at-point ()
+  "Insert an org-mode link for a PDF file selected interactively.
+Defaults to /Users/blaine/0booksLabeled/ directory."
+  (interactive)
+  (let ((default-directory "/Users/blaine/0booksLabeled/"))
+    (call-interactively #'mooerslab-book-pdf-to-org-link)))
+
+
+(defun mooerslab-paper-pdf-to-org-link (pdf-path)
+  "Convert a PDF file path to an org-mode link.
+The link description is derived from the filename by:
+1. Removing the .pdf extension
+2. Parsing author, year, and title
+3. Adding spaces to separate CamelCase appropriately."
+  (interactive "fSelect PDF file: ")
+  (let* ((filename (file-name-nondirectory pdf-path))
+         (name-sans-ext (file-name-sans-extension filename))
+         org-link)
+    (if (string-match "\\`\\([A-Za-z]+\\)\\([0-9X]+\\)\\(.*\\)\\'" name-sans-ext)
+        (let* ((author (match-string 1 name-sans-ext))
+               (year (match-string 2 name-sans-ext))
+               (title-raw (match-string 3 name-sans-ext))
+               ;; Process title character by character with lookahead
+               (title-spaced (let ((result "")
+                                   (len (length title-raw)))
+                               (dotimes (i len)
+                                 (let ((char (aref title-raw i))
+                                       (prev-char (if (> i 0) (aref title-raw (1- i)) nil))
+                                       (next-char (if (< i (1- len)) (aref title-raw (1+ i)) nil)))
+                                   ;; Add space before uppercase if:
+                                   ;; - Previous char is lowercase OR digit
+                                   ;; - AND current char is uppercase
+                                   ;; - AND next char is lowercase (start of new word)
+                                   (when (and prev-char
+                                              next-char
+                                              (or (and (>= prev-char ?a) (<= prev-char ?z))
+                                                  (and (>= prev-char ?0) (<= prev-char ?9)))
+                                              (and (>= char ?A) (<= char ?Z))
+                                              (and (>= next-char ?a) (<= next-char ?z)))
+                                     (setq result (concat result " ")))
+                                   (setq result (concat result (char-to-string char)))))
+                               result))
+               ;; Clean up multiple spaces
+               (title-clean (replace-regexp-in-string "  +" " " title-spaced))
+               (description (format "%s (%s) %s" author year title-clean)))
+          (setq org-link (format "[[file:%s][%s]]" pdf-path description)))
+      ;; Fallback if filename does not match expected pattern
+      (setq org-link (format "[[file:%s][%s]]" pdf-path name-sans-ext)))
+    (if (called-interactively-p 'any)
+        (progn
+          (insert org-link)
+          (message "Inserted org link for: %s" filename))
+      org-link)))
+
+(defun mooerslab-paper-pdf-to-org-link-at-point ()
+  "Insert an org-mode link for a PDF file selected interactively.
+Defaults to /Users/blaine/0papersLabeled/ directory."
+  (interactive)
+  (let ((default-directory "/Users/blaine/0papersLabeled/"))
+    (call-interactively #'mooerslab-paper-pdf-to-org-link)))
+
+
+
+
+
 (defun mooerslab-convert-pdf-list-to-html-list ()
   "Convert a list of PDF filenames in region to HTML list items.
 Each line should contain a PDF filename in the format:
