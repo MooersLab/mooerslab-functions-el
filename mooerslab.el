@@ -13,8 +13,205 @@
 ;;; This package is known to work (insofar as it's tested) with Emacs 30.1.
 
 ;;; Code:
+; These functions work by:
+;
+; Taking a selected region containing filenames (one per line)
+; Sorting the filenames alphabetically
+; Parsing each filename to extract author, year, and title
+; Using the same character-by-character processing logic to add spaces
+; Formatting each as an org-mode link with a bullet point
+; Replacing the region with the formatted org-mode links
+;
+; To use them:
+;
+; Select a region containing PDF or EPUB or CHM filenames (one per line)
+; Run M-x mooerslab-book-file-list-to-org-links for books
+; Or run M-x mooerslab-paper-file-list-to-org-links for papers
 
 
+(defun mooerslab-org-link-to-latex-href ()
+  "Convert the Org-mode link at point [[url][desc]]
+into a LaTeX \\href{url}{desc}.
+Must be in org-mode.
+
+If the link has no description ([[url]]), use the URL as the text."
+  (interactive)
+  (unless (derived-mode-p 'org-mode)
+    (user-error "Not in an Org buffer"))
+  (save-excursion
+    (let* ((pt (point))
+           start end)
+      ;; Find the surrounding [[ ... ]]
+      (unless (and (search-backward "[[" nil t)
+                   (setq start (point))
+                   (search-forward "]]" nil t)
+                   (setq end (point))
+                   (<= start pt)
+                   (>= end pt))
+        (user-error "Point is not inside an Org link [[...]]"))
+      ;; Extract inside of [[ ... ]]
+      (let* ((inner (buffer-substring-no-properties (+ start 2) (- end 2)))
+             ;; Split on the literal sequence "]["
+             (parts (split-string inner "]\\[")) ; regexp, so we escape the brackets
+             (url   (car parts))
+             (desc  (or (cadr parts) url)))
+        (goto-char start)
+        (delete-region start end)
+        (insert (format "\\href{%s}{%s}" url desc))))))
+
+(defun mooerslab-org-links-region-to-latex-href (beg end)
+  "Convert all Org-mode links [[url][desc]] in region to LaTeX \\href{url}{desc}.
+Must be in org-mode.
+If a link has no description ([[url]]), use the URL as the text."
+  (interactive "r")
+  (unless (derived-mode-p 'org-mode)
+    (user-error "Not in an Org buffer"))
+  (save-excursion
+    (save-restriction
+      (narrow-to-region beg end)
+      (goto-char (point-min))
+      (while (search-forward "[[" nil t)
+        (let ((start (match-beginning 0)))
+          (when (search-forward "]]" nil t)
+            (let* ((end   (point))
+                   (inner (buffer-substring-no-properties (+ start 2) (- end 2)))
+                   ;; Split on the literal sequence "]["
+                   (parts (split-string inner "]\\["))
+                   (url   (car parts))
+                   (desc  (or (cadr parts) url)))
+              (goto-char start)
+              (delete-region start end)
+              (insert (format "\\href{%s}{%s}" url desc)))))))))
+
+
+(defun mooerslab-book-file-list-to-org-links ()
+  "Convert a list of book filenames in region to org-mode links.
+Each line should contain a filename in the format:
+AuthorYEARTitle.pdf or AuthorYEARTitle.epub
+The function will:
+1. Sort lines alphabetically
+2. Parse each filename to extract author, year, and title
+3. Format as org-mode links to /Users/blaine/0booksLabeled/
+
+Example input:
+Alpaydin2016MachineLearningTheNewAI.pdf
+Johnson2006RSSandAtominActionWeb2BuildingBlocks.epub
+
+Example output:
+- [[file:/Users/blaine/0booksLabeled/Alpaydin2016MachineLearningTheNewAI.pdf][Alpaydin (2016) Machine Learning The New AI]]
+- [[file:/Users/blaine/0booksLabeled/Johnson2006RSSandAtominActionWeb2BuildingBlocks.epub][Johnson (2006) RSSand Atomin Action Web2Building Blocks]]"
+  (interactive)
+  (unless (use-region-p)
+    (user-error "No region selected"))
+  (let* ((start (region-beginning))
+         (end (region-end))
+         (lines (split-string (buffer-substring-no-properties start end) "\n" t))
+         (sorted-lines (sort lines #'string<))
+         (org-links '()))
+    ;; Process each line
+    (dolist (line sorted-lines)
+      (when (string-match "\\`\\([A-Za-z]+\\)\\([0-9X]+\\)\\(.*\\)\\.\\(pdf\\|epub\\|chm\\)\\'" line)
+        (let* ((author (match-string 1 line))
+               (year (match-string 2 line))
+               (title-raw (match-string 3 line))
+               (extension (match-string 4 line))
+               ;; Process title character by character with lookahead
+               (title-spaced (let ((result "")
+                                   (len (length title-raw)))
+                               (dotimes (i len)
+                                 (let ((char (aref title-raw i))
+                                       (prev-char (if (> i 0) (aref title-raw (1- i)) nil))
+                                       (next-char (if (< i (1- len)) (aref title-raw (1+ i)) nil)))
+                                   ;; Add space before uppercase if:
+                                   ;; - Previous char is lowercase OR digit
+                                   ;; - AND current char is uppercase
+                                   ;; - AND next char is lowercase (start of new word)
+                                   (when (and prev-char
+                                              next-char
+                                              (or (and (>= prev-char ?a) (<= prev-char ?z))
+                                                  (and (>= prev-char ?0) (<= prev-char ?9)))
+                                              (and (>= char ?A) (<= char ?Z))
+                                              (and (>= next-char ?a) (<= next-char ?z)))
+                                     (setq result (concat result " ")))
+                                   (setq result (concat result (char-to-string char)))))
+                               result))
+               ;; Clean up multiple spaces
+               (title-clean (replace-regexp-in-string "  +" " " title-spaced))
+               (org-link (format "- [[file:/Users/blaine/0booksLabeled/%s][%s (%s) %s]]"
+                                 line
+                                 author
+                                 year
+                                 title-clean)))
+          (push org-link org-links))))
+    ;; Replace region with org-mode links output
+    (delete-region start end)
+    (insert (mapconcat #'identity (nreverse org-links) "\n"))))
+
+(defun mooerslab-paper-file-list-to-org-links ()
+  "Convert a list of paper filenames in region to org-mode links.
+Each line should contain a filename in the format:
+AuthorYEARTitle.pdf or AuthorYEARTitle.epub
+The function will:
+1. Sort lines alphabetically
+2. Parse each filename to extract author, year, and title
+3. Format as org-mode links to /Users/blaine/0papersLabeled/
+
+Example input:
+Smith2020ProteinStructureDetermination.pdf
+Jones2019CrystallographyMethods.epub
+
+Example output:
+- [[file:/Users/blaine/0papersLabeled/Jones2019CrystallographyMethods.epub][Jones (2019) Crystallography Methods]]
+- [[file:/Users/blaine/0papersLabeled/Smith2020ProteinStructureDetermination.pdf][Smith (2020) Protein Structure Determination]]"
+  (interactive)
+  (unless (use-region-p)
+    (user-error "No region selected"))
+  (let* ((start (region-beginning))
+         (end (region-end))
+         (lines (split-string (buffer-substring-no-properties start end) "\n" t))
+         (sorted-lines (sort lines #'string<))
+         (org-links '()))
+    ;; Process each line
+    (dolist (line sorted-lines)
+      (when (string-match "\\`\\([A-Za-z]+\\)\\([0-9X]+\\)\\(.*\\)\\.\\(pdf\\|epub\\|chm\\)\\'" line)
+        (let* ((author (match-string 1 line))
+               (year (match-string 2 line))
+               (title-raw (match-string 3 line))
+               (extension (match-string 4 line))
+               ;; Process title character by character with lookahead
+               (title-spaced (let ((result "")
+                                   (len (length title-raw)))
+                               (dotimes (i len)
+                                 (let ((char (aref title-raw i))
+                                       (prev-char (if (> i 0) (aref title-raw (1- i)) nil))
+                                       (next-char (if (< i (1- len)) (aref title-raw (1+ i)) nil)))
+                                   ;; Add space before uppercase if:
+                                   ;; - Previous char is lowercase OR digit
+                                   ;; - AND current char is uppercase
+                                   ;; - AND next char is lowercase (start of new word)
+                                   (when (and prev-char
+                                              next-char
+                                              (or (and (>= prev-char ?a) (<= prev-char ?z))
+                                                  (and (>= prev-char ?0) (<= prev-char ?9)))
+                                              (and (>= char ?A) (<= char ?Z))
+                                              (and (>= next-char ?a) (<= next-char ?z)))
+                                     (setq result (concat result " ")))
+                                   (setq result (concat result (char-to-string char)))))
+                               result))
+               ;; Clean up multiple spaces
+               (title-clean (replace-regexp-in-string "  +" " " title-spaced))
+               (org-link (format "- [[file:/Users/blaine/0papersLabeled/%s][%s (%s) %s]]"
+                                 line
+                                 author
+                                 year
+                                 title-clean)))
+          (push org-link org-links))))
+    ;; Replace region with org-mode links output
+    (delete-region start end)
+    (insert (mapconcat #'identity (nreverse org-links) "\n"))))
+    
+    
+    
 (defun mooerslab-book-pdf-to-org-link (pdf-path)
   "Convert a PDF file path to an org-mode link.
 The link description is derived from the filename by:
