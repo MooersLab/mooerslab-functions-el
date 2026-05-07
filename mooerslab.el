@@ -29,6 +29,14 @@
 ; Or run M-x mooerslab-paper-file-list-to-org-links for papers
 
 
+(defun mooerslab-kill-parens-and-contents ()
+"Kill enclosing parentheses and their contents when point is inside."
+(interactive)
+(backward-up-list)
+(kill-sexp))
+(global-set-key (kbd "C-c (") #'mooerslab-kill-parens-and-contents)
+
+
 (defun mooerslab-org-link-to-latex-href ()
   "Convert the Org-mode link at point [[url][desc]]
 into a LaTeX \\href{url}{desc}.
@@ -209,9 +217,9 @@ Example output:
     ;; Replace region with org-mode links output
     (delete-region start end)
     (insert (mapconcat #'identity (nreverse org-links) "\n"))))
-    
-    
-    
+
+
+
 (defun mooerslab-book-pdf-to-org-link (pdf-path)
   "Convert a PDF file path to an org-mode link.
 The link description is derived from the filename by:
@@ -404,25 +412,25 @@ renumbering all found headlines. Handles \\section, \\subsection, \\subsubsectio
     (goto-char (point-min))
     (let ((current-number start-number)
           (case-fold-search t))
-      (while (re-search-forward 
+      (while (re-search-forward
               "\\\\\\(sub\\)*section{\\(Tip\\|Rule\\) \\([0-9]+\\):" nil t)
         (let ((section-type (match-string 1))
               (keyword (match-string 2))
               (old-number (match-string 3)))
           ;; Replace the number in the section headline
-          (replace-match 
-           (format "\\%ssection{%s %d:" 
+          (replace-match
+           (format "\\%ssection{%s %d:"
                    (if section-type section-type "")
-                   keyword 
-                   current-number) 
+                   keyword
+                   current-number)
            nil nil nil 0)
-          
+
           ;; Increment counter for next headline
           (setq current-number (1+ current-number))))
-      
+
       ;; Report results
-      (message "Renumbered %d LaTeX section headlines starting from %d" 
-               (- current-number start-number) 
+      (message "Renumbered %d LaTeX section headlines starting from %d"
+               (- current-number start-number)
                start-number))))
 
 
@@ -479,19 +487,19 @@ Example: '\\\\\\\\\\(sub\\)*section{\\([^0-9]*\\)\\([0-9]+\\)' for any numbered 
               (text-part (match-string 2))
               (old-number (match-string 3)))
           ;; Replace with new number
-          (replace-match 
-           (format "\\%ssection{%s%d" 
+          (replace-match
+           (format "\\%ssection{%s%d"
                    (if prefix prefix "")
                    text-part
                    current-number))
           (setq current-number (1+ current-number))
           (setq count (1+ count))))
-      
+
       ;; Report results
       (message "Renumbered %d LaTeX sections starting from %d" count start-number))))
 
 
-(defun rmooerslab-latex-enumber-latex-any-numbered-sections (start-number)
+(defun rmooerslab-latex-renumber-latex-any-numbered-sections (start-number)
   "Renumber any LaTeX section that contains a number, starting from START-NUMBER.
 Works with \\section, \\subsection, \\subsubsection, etc."
   (interactive "nStarting number: ")
@@ -499,74 +507,28 @@ Works with \\section, \\subsection, \\subsubsection, etc."
     (goto-char (point-min))
     (let ((current-number start-number)
           (case-fold-search t))
-      (while (re-search-forward 
+      (while (re-search-forward
               "\\\\\\(\\(?:sub\\)*section\\){\\([^}]*?\\)\\([0-9]+\\)\\([^}]*\\)}" nil t)
         (let ((section-command (match-string 1))
               (prefix-text (match-string 2))
               (old-number (match-string 3))
               (suffix-text (match-string 4)))
           ;; Replace the number in the section headline
-          (replace-match 
-           (format "\\%s{%s%d%s}" 
+          (replace-match
+           (format "\\%s{%s%d%s}"
                    section-command
                    prefix-text
                    current-number
-                   suffix-text) 
+                   suffix-text)
            nil nil nil 0)
-          
+
           ;; Increment counter for next headline
           (setq current-number (1+ current-number))))
-      
-      ;; Report results
-      (message "Renumbered %d LaTeX numbered sections starting from %d" 
-               (- current-number start-number) 
-               start-number))))
 
-(defun mooerslab-numbered-list-to-latex-items ()
-  "Convert a numbered list to LaTeX \\item statements."
-  (interactive)
-  (save-excursion
-    (save-restriction 
-      (narrow-to-region (region-beginning) (region-end))
-      (goto-char (point-min))
-      (while (re-search-forward "^\\s-*[0-9]+\\.\\s-+" nil t)
-        (replace-match "\\\\item " nil nil))
-        (goto-char (point-min))
-        (while (re-search-forward "\\\\item\\s-+\\(.*\\)" nil t)
-          (replace-match "\\\\item \\1\n" nil nil)))))
-    
-(defun mooerslab--numbered-list-to-latex-items ()
-  "Convert a numbered list to LaTeX \\item statements."
-  (interactive)
-  (save-excursion
-    (save-restriction 
-      (narrow-to-region (region-beginning) (region-end))
-      (goto-char (point-min))
-      (while (re-search-forward "^\\s-*[0-9]+\\.\\s-+" nil t)
-        (replace-match "\\\\item " nil nil))
-      (goto-char (point-min))  
-      (while (re-search-forward "\\\\item\\s-+\\(.*\\)" nil t)
-        (replace-match "\\\\item \\1%" nil nil))
-      (goto-char (point-min))
-      (while (search-forward "%" nil t)
-        (replace-match "\n" nil t)))))
-    
-    
-(defun mooerslab-dash-list-to-latex-items ()
-  "Convert a dash list to LaTeX \\item statements."
-  (interactive)
-  (save-excursion
-    (save-restriction
-      (narrow-to-region (region-beginning) (region-end))
-      (goto-char (point-min))
-      (while (re-search-forward "^\\s-*[-*+]\\s-+" nil t)
-        (replace-match "\\\\item " nil nil))
-      (goto-char (point-min))
-      (while (re-search-forward "\\\\item\\s-+\\(.*\\)" nil t)
-        (replace-match "\\\\item \\1%" nil nil))
-      (goto-char (point-min))
-      (while (search-forward "%" nil t)
-        (replace-match "\n" nil t)))))
+      ;; Report results
+      (message "Renumbered %d LaTeX numbered sections starting from %d"
+               (- current-number start-number)
+               start-number))))
 
 
 
@@ -582,19 +544,19 @@ Works with \\section, \\subsection, \\subsubsection, etc."
               (old-number (match-string 2))
               (suffix-text (match-string 3)))
           ;; Replace the number
-          (replace-match 
-           (format "\\%s{%s%d%s}" 
+          (replace-match
+           (format "\\%s{%s%d%s}"
                    section-type
                    prefix-text
                    current-number
-                   suffix-text) 
+                   suffix-text)
            nil nil nil 0)
-          
+
           (setq current-number (1+ current-number))))
-      
+
       ;; Report results
-      (message "Renumbered %d \\%s headlines starting from %d" 
-               (- current-number start-number) 
+      (message "Renumbered %d \\%s headlines starting from %d"
+               (- current-number start-number)
                section-type
                start-number))))
 
@@ -614,25 +576,25 @@ renumbering all found headlines. Also updates corresponding CUSTOM_ID properties
               (start-pos (match-beginning 0)))
           ;; Replace the number in the headline
           (replace-match (format "* %s %d:" keyword current-number) nil nil nil 0)
-          
+
           ;; Look for and update CUSTOM_ID property
           (save-excursion
             (forward-line 1)
             (when (looking-at ":PROPERTIES:")
               (forward-line 1)
-              (when (re-search-forward "^:CUSTOM_ID: rule-\\([0-9]+\\)-" 
-                                     (save-excursion 
+              (when (re-search-forward "^:CUSTOM_ID: rule-\\([0-9]+\\)-"
+                                     (save-excursion
                                        (re-search-forward "^:END:" nil t)
                                        (point))
                                      t)
                 (replace-match (format ":CUSTOM_ID: rule-%d-" current-number)))))
-          
+
           ;; Increment counter for next headline
           (setq current-number (1+ current-number))))
-      
+
       ;; Report results
-      (message "Renumbered %d headlines starting from %d" 
-               (- current-number start-number) 
+      (message "Renumbered %d headlines starting from %d"
+               (- current-number start-number)
                start-number))))
 
 (defun mooerslab-org-renumber-tips-from-beginning ()
@@ -1019,9 +981,9 @@ It works when positioned in the title field."
         ;; Count braces to find the matching closing brace
         (while (and (> brace-count 0) (not (eobp)))
           (cond
-           ((looking-at "{") 
+           ((looking-at "{")
             (setq brace-count (1+ brace-count)))
-           ((looking-at "}") 
+           ((looking-at "}")
             (setq brace-count (1- brace-count))))
           (when (> brace-count 0)
             (forward-char)))
@@ -1126,119 +1088,8 @@ then replacing this selection."
       (forward-line 1))))
 
 
-(defun mooerslab-org-list-package-functions ()
-  "Return a dashed org-mode list of all functions in a package.
-   Prompts the user for a package name in the minibuffer."
-  (interactive)
-  (let* ((package-name (intern (completing-read "Package name: "
-                                               (mapcar #'symbol-name features))))
-         (package-symbols (apropos-internal (concat "^" (symbol-name package-name) "-") 'fboundp))
-         (buffer (get-buffer-create (format "*%s-functions*" package-name)))
-         (functions-list))
-
-    ;; Create list of function symbols in the package
-    (setq functions-list
-          (sort (mapcar #'symbol-name package-symbols) #'string<))
-
-    ;; Switch to the output buffer
-    (switch-to-buffer buffer)
-    (erase-buffer)
-    (org-mode)
-
-    ;; Insert header
-    (insert (format "* Functions in package: %s\n\n" package-name))
-
-    ;; Insert functions as dashed list
-    (if functions-list
-        (dolist (func functions-list)
-          (insert (format "- %s\n" func)))
-      (insert "- No functions found in this package\n"))
-
-    ;; No need for org-list-indent-item-generic, as the list is already properly formatted
-
-    ;; Return to the beginning of the buffer
-    (goto-char (point-min))
-
-    ;; Message to user
-    (message "Created org-mode list of %d functions in package %s"
-             (length functions-list) package-name)))
 
 
-(defun mooerslab-org-dash-list-to-latex-items ()
-  "Convert org-mode dash list in current region or buffer to LaTeX \\item format."
-  (interactive)
-  (let ((start (if (use-region-p) (region-beginning) (point-min)))
-        (end (if (use-region-p) (region-end) (point-max))))
-    (save-excursion
-      (goto-char start)
-      (while (re-search-forward "^\\s-*- \\(.*\\)$" end t)
-        (replace-match "    \\\\item \\1")
-        (setq end (+ end (- (length "    \\\\item ") (length "- "))))))))
-
-
-;; Enhanced version with more options
-(defun mooerslab-org-dash-list-to-latex-items-enhanced (item-format)
-  "Convert org-mode dash list to LaTeX items with custom formatting.
-ITEM-FORMAT should be a string like '\\\\item' or '\\\\item \\\\textbf{%s}'."
-  (interactive "sItem format (use %s for content): ")
-  (let ((start (if (use-region-p) (region-beginning) (point-min)))
-        (end (if (use-region-p) (region-end) (point-max)))
-        (format-str (if (string-match "%s" item-format)
-                        item-format
-                      (concat item-format " %s"))))
-    (save-excursion
-      (goto-char start)
-      (while (re-search-forward "^\\s-*- \\(.*\\)$" end t)
-        (let* ((content (match-string 1))
-               (replacement (format format-str content)))
-          (replace-match (concat "    " replacement))
-          (setq end (+ end (- (length replacement) (length content) 1))))))))
-
-
-;; Convert with full LaTeX environment wrapper
-(defun mooerslab-org-dash-list-to-latex-itemize ()
-  "Convert org-mode dash list to complete LaTeX itemize environment."
-  (interactive)
-  (let ((start (if (use-region-p) (region-beginning) (point-min)))
-        (end (if (use-region-p) (region-end) (point-max)))
-        (items '()))
-    (save-excursion
-      (goto-char start)
-      (while (re-search-forward "^\\s-*- \\(.*\\)$" end t)
-        (push (match-string 1) items)))
-    (when items
-      (delete-region start end)
-      (goto-char start)
-      (insert "#+BEGIN_EXPORT latex\n")
-      (insert "\\begin{itemize}\n")
-      (dolist (item (reverse items))
-        (insert (format "    \\item %s\n" item)))
-      (insert "\\end{itemize}\n")
-      (insert "#+END_EXPORT\n"))))
-
-
-;; Convert with your specific bullet style
-(defun mooerslab-org-dash-list-to-custom-latex ()
-  "Convert org-mode dash list to LaTeX with custom bullet formatting for beamer slideshows."
-  (interactive)
-  (let ((start (if (use-region-p) (region-beginning) (point-min)))
-        (end (if (use-region-p) (region-end) (point-max)))
-        (items '()))
-    (save-excursion
-      (goto-char start)
-      (while (re-search-forward "^\\s-*- \\(.*\\)$" end t)
-        (push (match-string 1) items)))
-    (when items
-      (delete-region start end)
-      (goto-char start)
-      (insert "#+BEGIN_EXPORT latex\n")
-      (insert "\\Large{\n")
-      (insert "\\begin{itemize}[font=$\\bullet$\\scshape\\bfseries]\n")
-      (dolist (item (reverse items))
-        (insert (format "    \\item %s\n" item)))
-      (insert "\\end{itemize}\n")
-      (insert "}\n")
-      (insert "#+END_EXPORT\n"))))
 
 
 (defun mooerslab-github-markdown-table-package-functions ()
@@ -1458,7 +1309,7 @@ This is very useful during the preparation of grant progress reports and bibtex 
 
          ;; Updated wrapped text with file links inside a Notes drawer instead of COMMENT block
          (wrapped-text (and citekey
-                           (format "#+LATEX: \\subsubsection*{\\bibentry{%s}}\n#+LATEX: \\addcontentsline{toc}{subsubsection}{%s}\n#+INCLUDE: %s\n:Notes:\nfile:~/abibNotes/%s.org\nfile:~/0papersLabeled/%s.pdf\nAdd more prose. Add tables. Add figures.\n:END:"
+                           (format "#+LATEX: \\subsubsection*{\\bibentry{%s}}\n#+LATEX: \\addcontentsline{toc}{subsubsection}{%s}\n#+INCLUDE: %s\n:Notes:\nThe org-mode file is found [[file:~/abibNotes/%s.org][here]]\nThe PDF file is found [[file:~/0papersLabeled/%s.pdf][here]].\n\nAdd more prose. Add tables. Add figures.\n:END:"
                                   citekey citekey org-file-path citekey citekey))))
 
     ;; Debug message to check file paths
@@ -1648,18 +1499,6 @@ This is very useful during the preparation of grant progress reports and bibtex 
         (message "Replaced citekey, created .org file, and opened it: %s" org-file-path)))))
 
 
-(defun mooerslab-convert-org-checklist-to-dash-list (begin end)
-  "Convert org-mode checklist items to simple dash list items in the selected region.
-BEGIN and END define the boundaries of the region. Generated with Claude 3.7 Sonnet May 7, 2025."
-  (interactive "r")  ; "r" means the function takes region as input
-  (save-excursion
-    (save-restriction
-      (narrow-to-region begin end)  ; Narrow to the selected region
-      (goto-char (point-min))
-      (while (re-search-forward "^\\(\\s-*\\)- \\[[ X]\\] " nil t)
-        (replace-match "\\1- " t)))))
-
-
 ;% This function eases adding log files to the list of files for org-agenda to search for to-dos.
 ;% Another example of spending an hour to save a minute!
 (defun mooerslab-append-log-to-org-agenda-files ()
@@ -1730,177 +1569,6 @@ Customize the path to your init.el file."
             (message "Added to org-agenda-files and init.el: %s" selected-file)))))))
 
 
-(defun mooerslab-org-add-periods-to-list-items (begin end)
-  "Add periods to the end of all items in the selected org-mode list if missing.
-It operates only in the selected region between BEGIN and END.
-Preserves both checked and unchecked checkboxes and the initial dash.
-Suitable for preparing bullet lists for slides."
-  (interactive "r")
-  (save-excursion
-    (save-restriction
-      (narrow-to-region begin end)
-      (goto-char (point-min))
-      (while (re-search-forward "^\\([ \t]*-[ \t]+\\(?:\\[[ X]\\][ \t]+\\)?\\)\\([^.\n]+\\)\\([^.]\n\\|$\\)" nil t)
-        (replace-match "\\1\\2." nil nil)))))
-
-
-;;; add-periods-to-list
-(defun mooerslab-org-or-latex-add-periods-to-list ()
-  "Add a period to the end of each line in the current list if missing.
-Designed to work in both org and latex files.
-This is a massive problem with lists in slideshows.
-The absence of periods will upset some audience members.
-Works with:
-- org-mode lists (-, *, numbers)
-- org-mode checklists (- [ ], * [ ])
-https://github.com/cursorless-everywhere/emacs-cursorless/issues- LaTeX \\item lists
-- LaTeX \\item checklists (\\item [ ])
-
-Usage: Place cursor anywhere in list. Enter M-x org-or-latex-add-periods-to-list or C-c p.
-Developed with the help of Claude 3.5 Sonnet."
-  (interactive)
-  (save-excursion
-    (let ((list-end (save-excursion
-                      (end-of-list)
-                      (point))))
-      (beginning-of-list)
-      (while (< (point) list-end)
-        (end-of-line)
-        (when (and (not (looking-back "[.!?]\\|[.!?]\"\\|[.!?]''" (line-beginning-position)))
-                   (not (looking-at-p "^\\s-*$")) ; Skip empty lines
-                   (save-excursion
-                     (beginning-of-line)
-                     (looking-at-p "^\\s-*\\([-*]\\(?: \\[[ X-]\\]\\)?\\|[0-9]+[.)]\\|\\\\item\\(?: \\[[ X-]\\]\\)?\\)")))
-          (insert "."))
-        (forward-line)))))
-(global-set-key (kbd "C-c p") 'org-or-latex-add-periods-to-list)
-
-
-(defun mooerslab-beginning-of-list ()
-  "Move to beginning of the current list.
-Handles org-mode lists, checklists, and LaTeX lists."
-  (while (and (not (bobp))
-              (save-excursion
-                (beginning-of-line)
-                (looking-at-p "^\\s-*\\([-*]\\(?: \\[[ X-]\\]\\)?\\|[0-9]+[.)]\\|\\\\item\\(?: \\[[ X-]\\]\\)?\\)")))
-    (forward-line -1))
-  (forward-line 1))
-
-
-(defun mooerslab-end-of-list ()
-  "Move to end of the current list.
-Handles org-mode lists, checklists, and LaTeX lists."
-  (while (and (not (eobp))
-              (save-excursion
-                (beginning-of-line)
-                (looking-at-p "^\\s-*\\([-*]\\(?: \\[[ X-]\\]\\)?\\|[0-9]+[.)]\\|\\\\item\\(?: \\[[ X-]\\]\\)?\\)")))
-    (forward-line 1)))
-
-
-;;; carry-forward-todos
-;; When planning daily in org, moving the unfinished items forward manually is a pain.
-;; The manual cutting and pasting for five categories per day or week can take a long time.
-;; I know that org-agenda can do something like this.
-;; I want more control.
-(defun mooerslab-carry-forward-todos ()
-"Carry forward undone TODOs and unchecked items to Next Week while preserving categories."
-(interactive)
-(save-excursion
-  (let ((todos-to-move '())
-        (current-level (org-outline-level))
-        (category-order '()))
-
-    ;; Store the current week's position
-    (let ((current-week-pos (point)))
-
-      ;; First, collect category order
-      (org-map-entries
-       (lambda ()
-         (when (= (org-outline-level) (1+ current-level))
-           (push (org-get-heading t t t t) category-order)))
-       t 'tree)
-      (setq category-order (reverse category-order))
-
-      ;; Collect TODOs and checklist items from each category
-      (org-map-entries
-       (lambda ()
-         (when (= (org-outline-level) (1+ current-level))
-           (let ((category (org-get-heading t t t t))
-                 (end-of-subtree (save-excursion
-                                 (org-end-of-subtree)
-                                 (point))))
-             ;; Collect TODOs
-             (save-excursion
-               (while (re-search-forward org-todo-regexp end-of-subtree t)
-                 (let ((todo-state (match-string 1)))
-                   (when (and todo-state
-                            (not (member todo-state '("DONE" "CANCELLED" "SOMEDAY"))))
-                     (push (cons category
-                               (concat "   "
-                                      (buffer-substring-no-properties
-                                       (line-beginning-position)
-                                       (1+ (line-end-position)))))
-                           todos-to-move)))))
-             ;; Collect unchecked boxes
-             (save-excursion
-               (goto-char (line-beginning-position))
-               (while (re-search-forward "^\\([ \t]*\\)\\([-+*]\\) \\[ \\]" end-of-subtree t)
-                 (let ((indent (match-string 1))
-                       (bullet (match-string 2)))
-                   (push (cons category
-                             (concat "   " indent bullet " [ ] "
-                                    (buffer-substring-no-properties
-                                     (match-end 0)
-                                     (line-end-position))
-                                    "\n"))
-                         todos-to-move)))))))
-       t 'tree)
-
-      ;; Find or create Next Week heading
-      (goto-char (point-min))
-      (let ((next-week-marker (concat "^\\*\\{" (number-to-string current-level) "\\} Next Week")))
-        (unless (re-search-forward next-week-marker nil t)
-          (goto-char (point-max))
-          (insert "\n" (make-string current-level ?*) " Next Week\n")))
-
-      ;; Insert collected items under appropriate categories
-      (dolist (category category-order)
-        (when (cl-remove-if-not
-               (lambda (x) (string= (car x) category))
-               todos-to-move)
-          ;; Create or find category heading
-          (let ((category-marker (concat "^\\*\\{" (number-to-string (1+ current-level)) "\\} "
-                                       (regexp-quote category))))
-            (unless (re-search-forward category-marker nil t)
-              (insert "\n" (make-string (1+ current-level) ?*) " " category "\n"))
-            ;; Insert todos for this category
-            (dolist (todo (reverse (cl-remove-if-not
-                                  (lambda (x) (string= (car x) category))
-                                  todos-to-move)))
-              (insert (cdr todo))))))
-
-      ;; Go back and mark original items as done
-      (goto-char current-week-pos)
-      (org-map-entries
-       (lambda ()
-         (when (org-entry-is-todo-p)
-           (let ((todo-state (org-get-todo-state)))
-             (when (and todo-state
-                       (not (member todo-state '("DONE" "CANCELED"))))
-               (org-todo "DONE")))))
-       t 'tree)
-
-      ;; Mark all checkboxes as done
-      (goto-char current-week-pos)
-      (org-map-entries
-       (lambda ()
-         (save-excursion
-           (while (re-search-forward "^[ \t]*[-+*] \\[ \\]"
-                                   (save-excursion (outline-next-heading) (point))
-                                   t)
-             (replace-match "\\1[X]" nil nil))))
-       t 'tree)))))
-(global-set-key (kbd "C-c f") 'mooerslab-carry-forward-todos)
 
 
 ;;; org-insert-external-file
@@ -1928,85 +1596,6 @@ Prompts for a file path via minibuffer and includes a timestamp in a comment."
     (insert-file-contents full-path)
     (goto-char (point-max))))
 (global-set-key (kbd "C-c P") 'org-insert-protocol-file)
-
-
-
-
-;;; lines in region to list in org
-(defun nl/lines-in-region-to-org-list (marker)
-  "Convert lines in region to an org list with specified MARKER (-, +, *)."
-  (interactive "sMarker (e.g. -, +, *): ")
-  (if (region-active-p)
-      (let ((begin (region-beginning))
-            (end (region-end))
-            (marker (concat marker " ")))
-        (save-excursion
-          (goto-char begin)
-          (beginning-of-line)
-          (while (and (<= (point) end)
-                      (not (eobp)))
-            (insert marker)
-            ;; Adjust the end position as we add text
-            (setq end (+ end (length marker)))
-            (forward-line 1))))
-    (message "No region selected")))
-
-
-;;; region-to-itemized-list-in-org
-(defun mooerslab-org-region-to-itemized-list ()
-  "Convert the lines in a selected region into an itemized list."
-  (interactive)
-  (let ((start (region-beginning))
-        (end (region-end))
-        (lines ())
-        (str ""))
-    (save-excursion
-      (goto-char start)
-      (while (< (point) end)
-        (setq lines (cons (buffer-substring (point) (progn (end-of-line) (point))) lines)))
-    (doloist (line lines)
-      (setq str (concat str (format "- %s\n" line))))
-    (delete-region start end)
-    (insert str))))
-(global-set-key (kbd "C-c l") 'region-to-itemized-list)
-
-
-(defun mooerslab-org-convert-unordered-to-ordered-list (start end)
-  "Convert unnumbered list items to numbered list items in the marked region."
-  (interactive "r")
-  (save-excursion
-    (save-restriction
-      (narrow-to-region start end)
-      (goto-char (point-min))
-      (let ((counter 1))
-        (while (re-search-forward "^\\([ \t]*\\)\\(-\\|+\\|\\*\\)\\([ \t]+\\)" nil t)
-          (replace-match (format "\\1%d.\\3" counter) t)
-          (setq counter (1+ counter)))))))
-
-(global-set-key (kbd "C-c C-x n") 'mooerslab-org-convert-unordered-to-ordered-list)
-
-(defun mooerslab-org-convert-list-in-region-to-checkboxes (start end)
-  "Convert a dash/hyphen bullet list to org-mode checkboxes in region from START to END."
-  (interactive "r")
-  (save-excursion
-    (narrow-to-region start end)
-    (goto-char (point-min))
-    (while (re-search-forward "^\\s-*-\\s-+" nil t)
-      (replace-match "- [ ] " t nil))
-    (widen)))
-
-
-(defun mooerslab-org-convert-checkboxes-in-region-to-list (start end)
-  "Convert org-mode checkboxes to a regular dash/hyphen bullet list in region from START to END."
-  (interactive "r")
-  (save-excursion
-    (narrow-to-region start end)
-    (goto-char (point-min))
-    ;; Match checkbox patterns like "- [ ]", "- [X]", "- [x]" with any whitespace
-    (while (re-search-forward "^\\(\\s-*\\)- \\[[xX ]\\]\\s-+" nil t)
-      (let ((indent (match-string 1)))
-        (replace-match (concat indent "- ") t nil)))
-    (widen)))
 
 
 (defun mooerslab-open-file-in-textmate ()
@@ -2046,16 +1635,6 @@ Requires markmap-cli (npm install -g markmap-cli)."
     (browse-url (concat "file://" tmp-html))
     (message "Markmap mindmap generated and opened in browser.")))
 (global-set-key (kbd "C-x C-m") 'mooerslab-org-markmap-region)
-
-
-(defun mooerslab-remove-blank-lines-in-region (start end)
-  "Remove all blank lines in the region between START and END."
-  (interactive "r")
-  (save-excursion
-    (save-restriction
-      (narrow-to-region start end)
-      (goto-char (point-min))
-      (flush-lines "^$"))))
 
 
 (defun mooerslab-md-to-latex-region (start end)
@@ -2120,63 +1699,6 @@ Uses direct pandoc conversion and carefully handles formatting issues."
         (delete-region start end)
         (goto-char start)
         (insert orig-content)))))
-
-
-
-(defun mooerslab-org-convert-lines-to-org-checklist (beg end)
-  "Convert lines in region to org-mode checklist items.
-Preserves existing checkboxes, indentation, and empty lines.
-If no region is active, operate on the current buffer."
-  (interactive (if (use-region-p)
-                   (list (region-beginning) (region-end))
-                 (list (point-min) (point-max))))
-
-  (let ((lines (split-string (buffer-substring-no-properties beg end) "\n"))
-        (result ""))
-
-    (dolist (line lines)
-      (cond
-       ;; Empty line - keep as is
-       ((string-match-p "^\\s-*$" line)
-        (setq result (concat result line "\n")))
-
-       ;; Already has a proper checkbox
-       ((string-match-p "^\\(\\s-*\\)-\\s-*\\[[ xX-]\\]\\s-+" line)
-        (setq result (concat result line "\n")))
-
-       ;; Already a list item (dash) without checkbox
-       ((string-match "^\\(\\s-*\\)-\\s-+\\(.*\\)$" line)
-        (let ((indent (match-string 1 line))
-              (content (match-string 2 line)))
-          (setq result (concat result indent "- [ ] " content "\n"))))
-
-       ;; Regular line with possible indentation
-       ((string-match "^\\(\\s-*\\)\\(.*\\)$" line)
-        (let ((indent (match-string 1 line))
-              (content (match-string 2 line)))
-          (when (not (string-empty-p content))
-            (setq result (concat result indent "- [ ] " content "\n")))))))
-
-    (delete-region beg end)
-    (insert result)))
-
-
-(defun mooerslab-string-to-org-checklist (text)
-  "Convert string TEXT to org-mode checklist format.
-Preserves existing checkboxes, indentation, and empty lines."
-  (with-temp-buffer
-    (insert text)
-    (convert-to-org-checklist (point-min) (point-max))
-    (buffer-string)))
-
-
-(defun mooerslab-org-checklist-from-kill-ring ()
-  "Convert the latest kill-ring entry to org checklist format and put it back in the kill ring."
-  (interactive)
-  (when kill-ring
-    (let ((converted (string-to-org-checklist (car kill-ring))))
-      (kill-new converted)
-      (message "Converted text to org checklist and placed in kill ring"))))
 
 
 (defun mooerslab-md-to-org-region (start end)
@@ -2252,111 +1774,7 @@ Uses direct pandoc conversion and carefully removes blank lines between list ite
         (goto-char start)
         (insert orig-content)))))
 
-;;; region-to-todos-in-org
-(defun mooerslab-org-convert-region-to-fourth-level-todos ()
-  "Convert each line in the region to a level four heading."
-  (interactive)
-  (if (use-region-p)
-      (save-excursion
-        (let ((end (copy-marker (region-end)))
-              (beg (region-beginning)))
-          (goto-char beg)
-          (while (< (point) end)
-            (beginning-of-line)
-            (insert "**** TODO ")
-            (forward-line 1))
-          (set-marker end nil)))
-    (message "No region selected")))
 
-
-(defun mooerslab-org-convert-itemized-list-in-region-to-checklist ()
-  "Convert an org-mode itemized list (starting with '-') to a checklist (starting with '- [ ]')."
-  (interactive)
-  (save-excursion
-    (let ((count 0))
-      ;; Go to beginning of buffer or narrow region
-      (goto-char (if (use-region-p) (region-beginning) (point-min)))
-      ;; Search and replace
-      (while (re-search-forward "^[ \t]*\\(-\\) "
-                               (if (use-region-p) (region-end) (point-max))
-                               t)
-        (replace-match "\\1 [ ] " t)
-        (setq count (1+ count)))
-      (message "Converted %d items to checklist" count))))
-
-
-(defun mooerslab-org-convert-itemized-list-in-region-to-fourth-level-todos ()
-  "Convert selected region of org-mode itemized list to fourth-order TODOs.
-Requires an active region selection."
-  (interactive)
-  (if (not (region-active-p))
-      (message "Please select a region first")
-    (save-excursion
-      (let ((count 0)
-            (begin (region-beginning))
-            (end (region-end)))
-        ;; Narrow to region
-        (save-restriction
-          (narrow-to-region begin end)
-          ;; Go to beginning of narrowed region
-          (goto-char (point-min))
-          ;; Search and replace within narrow
-          (while (re-search-forward "^[ \t]*\\(-\\) \\(.+\\)$" nil t)
-            (replace-match "**** TODO \\2" t)
-            (setq count (1+ count)))
-          (message "Converted %d items to fourth-order TODOs" count))))))
-
-
-(defun mooerslab-org-convert-checklist-in-region-to-fourth-level-todos ()
-  "Convert selected region of org-mode checklist to fourth-order TODOs.
-Converts items starting with '- [ ]' to '**** TODO'.
-Requires an active region selection."
-  (interactive)
-  (if (not (region-active-p))
-      (message "Please select a region first")
-    (save-excursion
-      (let ((count 0)
-            (begin (region-beginning))
-            (end (region-end)))
-        ;; Narrow to region
-        (save-restriction
-          (narrow-to-region begin end)
-          ;; Go to beginning of narrowed region
-          (goto-char (point-min))
-          ;; Search and replace within narrow
-          (while (re-search-forward "^[ \t]*\\(-\\) \\[[ X]\\] \\(.+\\)$" nil t)
-            (replace-match "**** TODO \\2" t)
-            (setq count (1+ count)))
-          (message "Converted %d checklist items to fourth-order TODOs" count))))))
-
-
-;;; region-to-itemized-in-latex
-(defun mooerslab-latex-region-to-itemized-list (start end)
-  "Converts the region between START and END to an itemized list in LaTeX"
-  (interactive "r")  ; Use "r" to read region bounds automatically
-  (let* ((text (buffer-substring-no-properties start end))
-         (lines (split-string text "\n"))
-         (latex-string "\\begin{itemize}\n"))
-    (dolist (line lines)
-      (if (string-empty-p (string-trim line))
-          (setq latex-string (concat latex-string "\\item\n"))
-        (setq latex-string (concat latex-string "\\item " (string-trim line) "\n"))))
-    (setq latex-string (concat latex-string "\\end{itemize}\n"))
-    (delete-region start end)
-    (goto-char start)
-    (insert latex-string)))
-
-
-;;; region of csv list to latex
-(defun mooerslab-latex-convert-csv-to-itemized-list (start end)
-  "Convert a comma-separated list in the selected region to a LaTeX itemized list."
-  (interactive "r")
-  (let ((csv-text (buffer-substring-no-properties start end)))
-    (delete-region start end)
-    (insert "\\begin{itemize}\n")
-    (dolist (item (split-string csv-text ","))
-      (insert (format "  \\item %s\n" (string-trim item))))
-    (insert "\\end{itemize}\n")))
 
 
 
@@ -3248,33 +2666,6 @@ point relative to the headline with the tag."
   (shell (current-buffer))
   (process-send-string nil "echo 'test1'\n")
   (process-send-string nil "echo 'test2'\n"))
-
-;;; Split long lines into one line per sentence.
-;% The function is priceless when working with transripts from whisper-file.
-(defun mooerslab-split-line-by-sentences (start end)
-  "Move each sentence in the region to its own line, ignoring common titles and abbreviations."
-  (interactive "r")
-  (save-excursion
-    (goto-char start)
-    ;; First, temporarily mark abbreviations
-    (let ((case-fold-search nil))  ; make search case-sensitive
-      ;; Mark abbreviations with a special character (¶)
-      (goto-char start)
-      (while (re-search-forward "\\(Dr\\|Drs\\|Mr\\|Mrs\\|Ph\\.D\\|M\\.S\\)\\." end t)
-        (replace-match "\\1¶"))
-
-      ;; Now split on actual sentence endings
-      (goto-char start)
-      (while (re-search-forward "\\([.!?]\\)\\s-+" end t)
-        (replace-match "\\1\n"))
-
-      ;; Restore the original periods in abbreviations
-      (goto-char start)
-      (while (re-search-forward "¶" end t)
-        (replace-match ".")))))
-
-;; Bind the function to a key combination
-(global-set-key (kbd "C-c s s") 'mooerslab-split-line-by-sentences)
 
 
 
