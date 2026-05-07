@@ -1499,6 +1499,54 @@ This is very useful during the preparation of grant progress reports and bibtex 
         (message "Replaced citekey, created .org file, and opened it: %s" org-file-path)))))
 
 
+(defvar mooerslab-global-bib-file (expand-file-name "~/Documents/global.bib")
+"Path to the global BibTeX library searched by
+`mooerslab-mab-return-matching-citar-citekeys-org'.")
+
+(defun mooerslab-mab-return-matching-citar-citekeys-org (term)
+"Prompt for a search TERM and insert citation keys for matching entries.
+Searches `mooerslab-global-bib-file ' for BibTeX entries whose raw text contains
+TERM (case-insensitive, plain substring match across all fields including
+title, author, abstract, keywords, and the citekey itself).  For each
+matching entry, insert one line of the form
+[cite:@CITEKEY]
+at point in the current buffer.  That is the org-cite/citar citation
+format, so this command is intended for use inside an org-mode buffer
+where org-cite is active.
+Returns the list of raw citekeys (without the [cite:@...] wrapping) so
+the function can also be called from other Lisp."
+(interactive "sSearch term: ")
+(unless (file-readable-p mooerslab-global-bib-file)
+(user-error "Cannot read %s" mooerslab-global-bib-file ))
+(let ((target-buffer (current-buffer))
+(matches '()))
+(with-temp-buffer
+(insert-file-contents mooerslab-global-bib-file )
+(bibtex-mode)
+(let ((case-fold-search t))
+(bibtex-map-entries
+(lambda (key beg end)
+(let ((entry-text (buffer-substring-no-properties beg end)))
+(when (string-match-p (regexp-quote term) entry-text)
+(push key matches)))))))
+(setq matches (nreverse matches))
+(with-current-buffer target-buffer
+(if matches
+(progn
+(insert (mapconcat (lambda (k) (format "[cite:@%s]" k))
+matches
+"\n"))
+(insert "\n")
+(message "Inserted %d citation key(s) matching %S"
+(length matches) term))
+(message "No entries matched %S" term)))
+matches))
+
+
+
+
+
+
 ;% This function eases adding log files to the list of files for org-agenda to search for to-dos.
 ;% Another example of spending an hour to save a minute!
 (defun mooerslab-append-log-to-org-agenda-files ()
