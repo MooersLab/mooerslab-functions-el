@@ -1351,7 +1351,9 @@ This is very useful during the preparation of grant progress reports and bibtex 
 (LaTeX-mark-section innermost)
 (narrow-to-region (region-beginning) (region-end))))
 
-(keymap-set LaTeX-mode-map "C-x n s" #'mooerslab-LaTeX-narrow-to-section)
+(with-eval-after-load 'latex
+(keymap-set LaTeX-mode-map "C-x n s" #'mooerslab-LaTeX-narrow-to-section))
+
 
 (defun mooerslab-mab-wrap-citar-citekey-and-create-abibnote-org ()
   "Replace the citekey under the cursor with LaTeX-wrapped text and create a
