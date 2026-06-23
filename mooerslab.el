@@ -28,6 +28,95 @@
 ; Run M-x mooerslab-book-file-list-to-org-links for books
 ; Or run M-x mooerslab-paper-file-list-to-org-links for papers
 
+(define-prefix-command 'mooerslab-bib-prefix)
+(keymap-global-set "C-c b" 'mooerslab-bib-prefix)
+(keymap-set mooerslab-bib-prefix "d" #'doi-add-bibtex-entry)
+;; room to grow, all under the same "C-c b" branch:
+;; (keymap-set mooerslab-bib-prefix "f" #'doi-add-bibtex-entry-from-pdf)
+;; (keymap-set mooerslab-bib-prefix "k" #'my-insert-citekey)
+
+
+;;; mooerslab-org-roam-retype-refile
+(defun mooerslab-org-roam-retype-refile (new-type)
+  "Refile current org-roam note to a different type and subfolder (e.g., main (i.e., permanent), \n (i.e., hub), structure (i.e., synthesis), keyword, project, and literature (i.e., reference)). \n Retyping chages the fitletag in the frontmatter of the note."
+  (interactive
+   (list
+    (completing-read "New type: " '("main" "hub" "structure" "keyword" "literature" "protocols" "eab" "projects" "areas" "resources" "archives"))))
+  (when (and buffer-file-name
+             (string-match "/org-roam/\\([^/]+\\)/" buffer-file-name))
+    (let* ((old-type (match-string 1 buffer-file-name))
+           (file-name (file-name-nondirectory buffer-file-name))
+           (new-path (concat (file-name-directory (directory-file-name (file-name-directory buffer-file-name)))
+                            new-type
+                            "/"
+                            file-name)))
+      ;; Update filetags
+      (save-excursion
+        (goto-char (point-min))
+        (when (re-search-forward "^#\\+filetags:.*$" nil t)
+          (replace-match (concat "#+filetags: :" new-type ":") nil nil)))
+      ;; Save the buffer
+      (save-buffer)
+      ;; Move the file
+      (rename-file buffer-file-name new-path t)
+      ;; Visit the new file
+      (find-file new-path)
+      ;; Sync the database
+      (org-roam-db-sync)
+      (message "Note retyped and refiled to %s" new-type))))
+
+;; Add this to your org-roam configuration
+(bind-key "C-c n r" #'mooerslab-org-roam-retype-refile)
+
+
+
+
+
+(defun mooerslab-latex-insert-screenshot (filename)
+  "Capture a screenshot and insert it into a LaTeX figure environment. Wraps filepath with figure environment."
+  (interactive "sEnter figure name: ")
+  (let* ((dir "figures/")
+         (path (concat dir filename ".png")))
+    (unless (file-exists-p dir) (make-directory dir))
+    (shell-command (concat "screencapture -i " path)) ; macOS command
+    (insert (format "\\begin{figure}[ht]
+    \\centering
+    \\includegraphics[width=0.8\\textwidth]{%s}
+    \\caption{Add caption here}
+    \\label{fig:%s}
+\\end{figure}" path filename))))
+
+
+(defun mooerslab-switch-pdf-reader ()
+  "Toggle between reader-mode and pdf-tools for PDF files."
+  (interactive)
+  (let ((filename buffer-file-name)
+        (line (line-number-at-pos))
+        (col (current-column)))
+    (cond
+     ((eq major-mode 'reader-mode)
+      (kill-buffer)
+      (find-file filename)
+      (pdf-view-mode)
+      (message "Switched to pdf-tools"))
+     ((eq major-mode 'pdf-view-mode)
+      (kill-buffer)
+      (find-file filename)
+      (reader-mode)
+      (message "Switched to reader-mode"))
+     (t (message "Not in a PDF reader mode")))))
+
+;; Define the prefix keymap first
+(define-prefix-command 'mooerslab-toggle-map)
+(global-set-key (kbd "C-c t") 'mooerslab-toggle-map)
+
+;; Now you can add keys to it
+(define-key mooerslab-toggle-map (kbd "t") 'my-append-todo-to-heading)
+(define-key mooerslab-toggle-map (kbd "p") 'mooerslab-switch-pdf-reader)
+
+
+(global-set-key (kbd "C-c t p") 'mooerslab-switch-pdf-reader)
+
 
 (defun mooerslab-kill-parens-and-contents ()
 "Kill enclosing parentheses and their contents when point is inside."
@@ -1249,6 +1338,20 @@ This is very useful during the preparation of grant progress reports and bibtex 
 (eval-after-load 'tex-mode
        '(define-key LaTeX-mode-map (kbd "C-c w p") 'insert-main-index-entry))
 
+(defun mooerslab-LaTeX-narrow-to-section (&optional innermost)
+ "Narrow to the LaTeX sectioning unit around point.
+ By default the current section and its child subsections are shown.
+ With a prefix argument C-u, show only from the current
+ sectioning command to the next one; the children are excluded.
+ Note that the recommended keybinding has to be mapped to the LaTeX keymap
+ because the same keybinding in org-mode narrows to the subtree in an org-file."
+(interactive "P")
+(widen)
+(save-mark-and-excursion
+(LaTeX-mark-section innermost)
+(narrow-to-region (region-beginning) (region-end))))
+
+(keymap-set LaTeX-mode-map "C-x n s" #'mooerslab-LaTeX-narrow-to-section)
 
 (defun mooerslab-mab-wrap-citar-citekey-and-create-abibnote-org ()
   "Replace the citekey under the cursor with LaTeX-wrapped text and create a
@@ -1543,9 +1646,49 @@ matches
 matches))
 
 
+(defun mooerslab-mab-wrap-citar-citekeys-in-region (start end)
+  "Apply `mooerslab-mab-wrap-citar-citekey-and-create-abibnote-org' to every
+citar citation in the region between START and END.
 
+A citar citation is matched by the regexp \\[cite:@[^]]+\\].  Each match
+in the region is processed in turn.  Citations are handled in reverse
+order (from the end of the region toward the beginning) so the position
+of an earlier citation is not invalidated when a later citation is
+replaced by its much longer LaTeX expansion.
 
-
+If the region contains more than 10 citations, a confirmation prompt
+appears before any work begins, because each citation triggers file
+creation, buffer opening, and an append to the project .bib file."
+  (interactive "r")
+  (unless (use-region-p)
+    (user-error "No active region"))
+  (let ((source-buffer (current-buffer))
+        (positions '()))
+    ;; Phase 1.  Collect the start position of every citation in the region.
+    (save-excursion
+      (goto-char start)
+      (while (re-search-forward "\\[cite:@[^]]+\\]" end t)
+        (push (match-beginning 0) positions)))
+    (let ((n (length positions)))
+      (cond
+       ((zerop n)
+        (message "No citar citations found in the region."))
+       ((and (> n 10)
+             (not (yes-or-no-p
+                   (format "Region contains %d citations (more than 10). Proceed? "
+                           n))))
+        (message "Aborted by user."))
+       (t
+        ;; Phase 2.  Walk positions descending so each rewrite leaves the
+        ;; remaining work undisturbed.  `with-current-buffer' keeps us in
+        ;; the source buffer between iterations, even though the wrapped
+        ;; function ends with `find-file' on the .org note.
+        (dolist (pos (sort positions #'>))
+          (with-current-buffer source-buffer
+            (goto-char pos)
+            (mooerslab-mab-wrap-citar-citekey-and-create-abibnote-org)))
+        (pop-to-buffer source-buffer)
+        (message "Wrapped %d citation(s)." n))))))
 
 ;% This function eases adding log files to the list of files for org-agenda to search for to-dos.
 ;% Another example of spending an hour to save a minute!
