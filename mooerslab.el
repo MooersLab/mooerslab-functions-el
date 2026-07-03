@@ -534,7 +534,7 @@ renumbering all found headlines. Handles \\section, \\subsection, \\subsubsectio
         (goto-char start)
         (insert "#+BEGIN_QUOTE\n"))
     (message "No region selected!")))
-
+(bind-key "C-c x q" #'mooerslab-org-enclose-region-in-quote)
 
 (defun mooerslab-latex-enclose-region-in-quote (begin end)
   "Wrap the selected region in a LaTeX quote environment.
