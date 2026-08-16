@@ -548,6 +548,31 @@ BEGIN and END define the region to be wrapped."
             "\\end{quote}")))
 
 
+(defun mooerslab-org-enclose-region-in-source ()
+  "Enclose the selected region in a #+BEGIN_QUOTE and #+END_QUOTE block."
+  (interactive)
+  (if (use-region-p)
+      (let ((start (region-beginning))
+            (end (region-end)))
+        (goto-char end)
+        (insert "\n#+END_SRC")
+        (goto-char start)
+        (insert "#+BEGIN_SRC\n"))
+    (message "No region selected!")))
+
+
+(defun mooerslab-latex-enclose-region-in-minted (begin end)
+  "Wrap the selected region in a LaTeX quote environment.
+BEGIN and END define the region to be wrapped."
+  (interactive "r")
+  (let ((selected-text (buffer-substring-no-properties begin end)))
+    (delete-region begin end)
+    (insert "\\begin{minted}{bash}\n"
+            selected-text
+            (if (string-suffix-p "\n" selected-text) "" "\n")
+            "\\end{minted}")))
+
+
 (defun mooerslab-latex-renumber-latex-tips-from-beginning ()
   "Convenience function to renumber LaTeX tips and rules starting from 1."
   (interactive)
@@ -1604,7 +1629,7 @@ This is very useful during the preparation of grant progress reports and bibtex 
         (message "Replaced citekey, created .org file, and opened it: %s" org-file-path)))))
 
 
-(defvar mooerslab-global-bib-file (expand-file-name "~/Documents/global.bib")
+(defvar mooerslab-global-bib-file (expand-file-name "~/globalbibtex/global.bib")
 "Path to the global BibTeX library searched by
 `mooerslab-mab-return-matching-citar-citekeys-org'.")
 
