@@ -572,6 +572,37 @@ BEGIN and END define the region to be wrapped."
             (if (string-suffix-p "\n" selected-text) "" "\n")
             "\\end{minted}")))
 
+(defun mooerslab-org-enclose-region-in-checklist-drawer (begin end)
+  "Wrap the selected region in an org-mode drawer.
+  The drawer has to be indented two spaces if under a checklist item.
+:DRAWER: and :END: delimit the wrapped region."
+  (interactive "r")
+  (let ((text (buffer-substring-no-properties begin end)))
+    (when (string-match-p "^\\*+ " text)
+      (user-error "Region contains a headline; drawers cannot span headlines"))
+    (delete-region begin end)
+    (save-excursion
+      (goto-char begin)
+      (insert "  :DRAWER:\n"
+              text
+              (if (string-suffix-p "\n" text) "" "\n")
+              "  :END:\n"))))
+ 
+(defun mooerslab-org-enclose-region-in-headline-drawer (begin end)
+  "Wrap the selected region in an org-mode drawer under a headline.
+:DRAWER: and :END: delimit the wrapped region."
+  (interactive "r")
+  (let ((text (buffer-substring-no-properties begin end)))
+    (when (string-match-p "^\\*+ " text)
+      (user-error "Region contains a headline; drawers cannot span headlines"))
+    (delete-region begin end)
+    (save-excursion
+      (goto-char begin)
+      (insert ":DRAWER:\n"
+              text
+              (if (string-suffix-p "\n" text) "" "\n")
+              ":END:\n"))))
+
 
 (defun mooerslab-latex-renumber-latex-tips-from-beginning ()
   "Convenience function to renumber LaTeX tips and rules starting from 1."
