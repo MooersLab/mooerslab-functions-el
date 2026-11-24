@@ -3220,8 +3220,94 @@ Each line in the region becomes a separate list item."
     (delete-region begin end)
     (insert dash-list)))
 
+(require 'org)
+(require 'org-table)
+(require 'seq)
+(require 'subr-x)
 
+(defun mooers/org-table--row-cells (line)
+"Return the cells of the table row LINE as a list of strings.
+Return nil when LINE is an hline or not a table row."
+(let ((rows (org-table-to-lisp line)))
+(and rows (listp (car rows)) (car rows))))
 
+(defun mooers/org-table--blank-after (line keep)
+"Return the table row LINE with every cell after the first KEEP emptied.
+The number of cells stays the same, and the indentation is kept. The
+result is not aligned."
+(let ((cells (mooers/org-table--row-cells line))
+(indent (if (string-match "\`[ \t]*" line) (match-string 0 line) "")))
+(if (null cells)
+line
+(concat indent "|"
+(mapconcat (lambda (c) (concat " " c " "))
+(append (seq-take cells keep)
+(make-list (max 0 (- (length cells) keep)) ""))
+"|")
+"|"))))
+
+(defun mooers/org-table--cookie-row-p (cells)
+"Return non-nil when CELLS hold only width or alignment cookies, like <l>."
+(and (seq-some (lambda (c) (not (string-empty-p c))) cells)
+(seq-every-p (lambda (c) (string-match-p "\`\(<[lrc]?[0-9]*>\)?\'" c))
+cells)))
+
+(defun mooers/org-table--replace-line (new)
+"Replace the current line with NEW when the two differ."
+(let ((bol (line-beginning-position))
+(eol (line-end-position)))
+(unless (equal new (buffer-substring-no-properties bol eol))
+(delete-region bol eol)
+(goto-char bol)
+(insert new))))
+
+(defun mooers/org-table-clear-except-first-column ()
+"Empty every cell of the Org table at point except the first column.
+The row of column labels is never cleared. That is every row above the
+first hline, or the first row when the table has no hline. Hlines,
+width-cookie rows such as | <l> | <5> |, and a #+TBLFM line are kept
+too. The number of columns is preserved, and the table is realigned."
+(interactive)
+(unless (org-at-table-p)
+(user-error "Not inside an Org table"))
+(save-excursion
+(goto-char (org-table-begin))
+(let* ((end (copy-marker (org-table-end)))
+(has-hline (save-excursion (re-search-forward "^[ \t]|-" end t)))
+(in-header t))
+(while (< (point) end)
+(let ((line (buffer-substring-no-properties
+(line-beginning-position) (line-end-position)))
+(cells (mooers/org-table--row-cells line)))
+(cond
+((org-at-table-hline-p) (setq in-header nil))
+(in-header
+;; Without an hline, only the first row holds the labels.
+(unless has-hline (setq in-header nil)))
+((or (null cells) (mooers/org-table--cookie-row-p cells)))
+(t (mooers/org-table--replace-line
+(mooers/org-table--blank-after line 1)))))
+(forward-line 1))
+(set-marker end nil))
+(org-table-align)))
+
+(defun mooers/org-table-clear-row-right (&optional include-current)
+"Empty the cells of the current Org table row to the right of point.
+The cell that point is in is kept. With a prefix argument
+INCLUDE-CURRENT, it is emptied too. The number of columns is preserved,
+and the table is realigned. Point stays in the same cell."
+(interactive "P")
+(unless (org-at-table-p)
+(user-error "Not inside an Org table"))
+(when (org-at-table-hline-p)
+(user-error "Point is on an hline, not on a row of cells"))
+(let* ((col (org-table-current-column))
+(keep (if include-current (1- col) col))
+(line (buffer-substring-no-properties
+(line-beginning-position) (line-end-position))))
+(mooers/org-table--replace-line (mooers/org-table--blank-after line keep))
+(org-table-align)
+(org-table-goto-column col)))
 
 ;; Example usage:
 ;; (update-tex-root-references)
